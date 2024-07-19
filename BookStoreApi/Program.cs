@@ -1,9 +1,16 @@
+using BookStoreApi.Data;
+using BookStoreApi.Options;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+var config = builder.Configuration.Get<BookStoreConfiguration>() ?? throw new Exception("Failed to get Aggregator Configuration");
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(config.PostgreSQL.ConnectionString));
 
 var app = builder.Build();
 
