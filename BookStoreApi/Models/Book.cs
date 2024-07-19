@@ -14,9 +14,13 @@ public class Book
 
     [Required]
     public required string ISBN { get; set; }
-    public DateTime PublishedDate { get; set; }
+    [Required]
+    public DateOnly PublishedDate { get; set; }
 
+    [Required]
     [Range(0, double.MaxValue)]
     public decimal Price { get; set; }
+    [Required]
+    [Range(0, int.MaxValue)]
     public int Quantity { get; set; }
 }

@@ -114,13 +114,13 @@ public class BookServiceTests
     }
 
     [Fact]
-    public async Task AddBookAsync_CallsRepositoryAddBook()
+    public async Task CreateBookAsync_CallsRepositoryAddBook()
     {
         var book = new Book { ID = 1, Title = "Book 1", Author = "Author 1", ISBN = "1234" };
 
-        await _bookService.AddBookAsync(book);
+        await _bookService.CreateBookAsync(book);
 
-        _mockBookRepository.Verify(repo => repo.AddBookAsync(book), Times.Once);
+        _mockBookRepository.Verify(repo => repo.CreateBookAsync(book), Times.Once);
     }
 
     [Fact]

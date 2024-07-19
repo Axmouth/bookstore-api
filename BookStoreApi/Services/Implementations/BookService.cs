@@ -23,19 +23,19 @@ public class BookService : IBookService
         return await _bookRepository.GetBookByIdAsync(id);
     }
 
-    public async Task AddBookAsync(Book book)
+    public async Task CreateBookAsync(Book book)
     {
-        await _bookRepository.AddBookAsync(book);
+        await _bookRepository.CreateBookAsync(book);
     }
 
-    public async Task UpdateBookAsync(Book book)
+    public async Task<bool> UpdateBookAsync(Book book)
     {
-        await _bookRepository.UpdateBookAsync(book);
+        return await _bookRepository.UpdateBookAsync(book);
     }
 
-    public async Task DeleteBookAsync(int id)
+    public async Task<bool> DeleteBookAsync(int id)
     {
-        await _bookRepository.DeleteBookAsync(id);
+        return await _bookRepository.DeleteBookAsync(id);
     }
 }
 

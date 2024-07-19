@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+namespace BookStoreApi.Controllers;
+
 [ApiController]
 [Route("api/v1/[controller]")]
 public class BooksController : ControllerBase
@@ -41,10 +43,23 @@ public class BooksController : ControllerBase
 
     // POST /books
     [HttpPost]
-    public async Task<ActionResult<Book>> PostBook(int id)
+    public async Task<ActionResult<Book>> CreateBook(Book book)
     {
-        await _bookService.DeleteBookAsync(id);
-        return NoContent();
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            await _bookService.CreateBookAsync(book);
+            return CreatedAtAction(nameof(GetBook), new { id = book.ID }, book);
+        }
+        catch (DbUpdateException)
+        {
+            // TODO: unique constraint on Title or ISBN
+            return Conflict("Error updateting book.");
+        }
     }
 
     // PUT /books/:id
@@ -55,7 +70,13 @@ public class BooksController : ControllerBase
         {
             return BadRequest();
         }
-        await _bookService.UpdateBookAsync(book);
+
+        var updated = await _bookService.UpdateBookAsync(book);
+        if (!updated)
+        {
+            return NotFound();
+        }
+
         return NoContent();
     }
 
@@ -63,7 +84,12 @@ public class BooksController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteBook(int id)
     {
-        await _bookService.DeleteBookAsync(id);
+        var deleted = await _bookService.DeleteBookAsync(id);
+        if (!deleted)
+        {
+            return NotFound();
+        }
+
         return NoContent();
     }
 }

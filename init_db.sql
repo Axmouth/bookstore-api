@@ -3,7 +3,7 @@ CREATE TABLE "Books" (
     "Title" VARCHAR(255) NOT NULL,
     "Author" VARCHAR(255) NOT NULL,
     "ISBN" VARCHAR(13) NOT NULL,
-    "PublishedDate" TIMESTAMP,
+    "PublishedDate" DATE,
     "Price" DECIMAL CHECK ("Price" >= 0),
     "Quantity" INT
 );
