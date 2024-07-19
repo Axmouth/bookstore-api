@@ -29,6 +29,7 @@ public class BookRepository : IBookRepository
         }
 
         return await books
+            .OrderByDescending(b => b.PublishedDate)
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
             .ToListAsync();
