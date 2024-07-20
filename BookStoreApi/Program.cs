@@ -131,6 +131,7 @@ else
 
 app.UseStatusCodePages();
 app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseMiddleware<TransactionMiddleware>();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
