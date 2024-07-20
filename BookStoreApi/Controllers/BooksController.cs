@@ -45,6 +45,7 @@ public class BooksController : ControllerBase
     }
 
     // POST /books
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<Book>> CreateBook(Book book)
     {
@@ -58,14 +59,15 @@ public class BooksController : ControllerBase
             await _bookService.CreateBookAsync(book);
             return CreatedAtAction(nameof(GetBook), new { id = book.ID }, book);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException e)
         {
             // TODO: unique constraint on Title or ISBN
-            return Conflict("Error updateting book.");
+            return Conflict("Error updating book.");
         }
     }
 
     // PUT /books/:id
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> PutBook(int id, Book book)
     {
@@ -84,6 +86,7 @@ public class BooksController : ControllerBase
     }
 
     // DELETE /books/:id
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteBook(int id)
     {

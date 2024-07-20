@@ -2,20 +2,18 @@ using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Logging;
-using System.IO;
-using System.Linq;
 using BookStoreApi.Data;
 using BookStoreApi.Models;
 using Identity.Models;
 using Microsoft.EntityFrameworkCore;
+using BookStoreApi.Options;
 
 public static class SeedData
 {
-    public static async Task Initialize(IServiceProvider serviceProvider, UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager, AppDbContext dbContext)
+    public static async Task Initialize(IServiceProvider serviceProvider, UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager, AppDbContext dbContext, AdminSettings adminSettings)
     {
         // Seed roles and admin user
-        await SeedRolesAndAdminUserAsync(serviceProvider, userManager, roleManager);
+        await SeedRolesAndAdminUserAsync(serviceProvider, userManager, roleManager, adminSettings);
 
         // Check initialization status
         if (!await IsDatabaseInitializedAsync(dbContext))
@@ -39,9 +37,9 @@ public static class SeedData
         await dbContext.SaveChangesAsync();
     }
 
-    private static async Task SeedRolesAndAdminUserAsync(IServiceProvider serviceProvider, UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager)
+    private static async Task SeedRolesAndAdminUserAsync(IServiceProvider serviceProvider, UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager, AdminSettings adminSettings)
     {
-        string[] roleNames = ["Admin", "User"];
+        string[] roleNames = { "Admin", "User" };
         IdentityResult roleResult;
 
         foreach (var roleName in roleNames)
@@ -55,13 +53,13 @@ public static class SeedData
 
         var admin = new AppUser
         {
-            UserName = "admin",
-            Email = "admin@bookstore.com",
+            UserName = adminSettings.AdminUsername,
+            Email = adminSettings.AdminEmail,
             FirstName = "Admin",
             LastName = "User"
         };
 
-        string adminPassword = "Admin@123";
+        string adminPassword = adminSettings.AdminPassword;
 
         var user = await userManager.FindByEmailAsync(admin.Email);
 

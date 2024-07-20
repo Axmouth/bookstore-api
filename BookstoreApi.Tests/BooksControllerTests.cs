@@ -5,10 +5,6 @@ using BookStoreApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Xunit;
 
 namespace BookStoreApi.Tests.Controllers;
 
@@ -204,7 +200,7 @@ public class BooksControllerTests
 
         // Assert
         var conflictResult = Assert.IsType<ConflictObjectResult>(result.Result);
-        Assert.Equal("Error updateting book.", conflictResult.Value);
+        Assert.Equal("Error updating book.", conflictResult.Value);
     }
 
 }

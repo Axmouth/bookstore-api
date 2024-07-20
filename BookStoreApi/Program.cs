@@ -146,10 +146,12 @@ using (var scope = app.Services.CreateScope())
     var loggerFactory = services.GetRequiredService<ILoggerFactory>();
     try
     {
+        var dbContext = services.GetRequiredService<AppDbContext>();
+        dbContext.Database.Migrate();
+
         var userManager = services.GetRequiredService<UserManager<AppUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        var dbContext = services.GetRequiredService<AppDbContext>();
-        await SeedData.Initialize(services, userManager, roleManager, dbContext);
+        await SeedData.Initialize(services, userManager, roleManager, dbContext, config.AdminSettings);
     }
     catch (Exception ex)
     {
