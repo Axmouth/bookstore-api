@@ -1,6 +1,6 @@
 using BookStoreApi.Options;
 using BookStoreApi.Data;
-using BookStoreApi.Middlewares;
+using BookStoreApi.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -125,16 +125,16 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler("/error");
     app.UseHsts();
 }
 
-app.UseStatusCodePages();
-app.UseMiddleware<ErrorHandlingMiddleware>();
-app.UseMiddleware<TransactionMiddleware>();
 app.UseRouting();
+
+app.UseMiddleware<ErrorHandlingMiddleware>(); // Ensure middleware is here
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.UseEndpoints(endpoints =>
 {
     _ = endpoints.MapControllers();

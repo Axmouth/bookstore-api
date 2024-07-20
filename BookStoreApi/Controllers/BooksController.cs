@@ -1,6 +1,8 @@
+using System.Net;
 using BookStoreApi.Data;
 using BookStoreApi.Models;
 using BookStoreApi.Queries;
+using BookStoreApi.Responses;
 using BookStoreApi.Services;
 using Identity.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -64,16 +66,16 @@ public class BooksController : ControllerBase
         {
             if (dbException.GetBaseException() is PostgresException pgException)
             {
-                switch (pgException.SqlState)
+                if (pgException.SqlState == "23505")
                 {
-                    case "23505":
-                        ModelState.AddModelError(string.Empty, "This entity exists in the database");
-                        return Conflict("Error updating book.");
-                    default:
-                        throw;
+                    return Conflict(new ErrorDetails
+                    {
+                        StatusCode = (int)HttpStatusCode.Conflict,
+                        Message = "Book with conflicting ISBN or Title/Author combination exists"
+                    });
                 }
             }
-            return Conflict("Error updating book.");
+            throw;
         }
     }
 
@@ -87,10 +89,29 @@ public class BooksController : ControllerBase
             return BadRequest();
         }
 
-        var updated = await _bookService.UpdateBookAsync(book);
-        if (!updated)
+        try
         {
-            return NotFound();
+            var updated = await _bookService.UpdateBookAsync(book);
+
+            if (!updated)
+            {
+                return NotFound();
+            }
+        }
+        catch (DbUpdateException dbException)
+        {
+            if (dbException.GetBaseException() is PostgresException pgException)
+            {
+                if (pgException.SqlState == "23505")
+                {
+                    return Conflict(new ErrorDetails
+                    {
+                        StatusCode = (int)HttpStatusCode.Conflict,
+                        Message = "Book with conflicting ISBN or Title/Author combination exists"
+                    });
+                }
+            }
+            throw;
         }
 
         return NoContent();

@@ -27,13 +27,13 @@ public class AuthController : ControllerBase
         var user = await _userManager.FindByNameAsync(model.Username);
         if (user == null)
         {
-            return Unauthorized("Invalid username or password.");
+            return Unauthorized("Invalid username or password");
         }
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
         if (!result.Succeeded)
         {
-            return Unauthorized("Invalid username or password.");
+            return Unauthorized("Invalid username or password");
         }
 
         var token = await _jwtTokenService.GenerateTokenAsync(user, _userManager);

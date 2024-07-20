@@ -5,6 +5,7 @@ using BookStoreApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using Npgsql;
 
 namespace BookStoreApi.Tests.Controllers;
 
@@ -178,30 +179,89 @@ public class BooksControllerTests
     }
 
     [Fact]
-    public async Task CreateBook_ReturnsConflict_WhenBookWithSameTitleOrIsbnExists()
+    public async Task CreateBook_ReturnsConflict_WhenDuplicateISBNExists()
     {
         // Arrange
         var book = new Book
         {
-            ID = 1,
-            Title = "Test Book",
+            Title = "Conflict Book",
             Author = "Author",
             ISBN = "1234567890123",
-            PublishedDate = new DateOnly(2020, 1, 1),
-            Price = 10.99m,
-            Quantity = 100
+            PublishedDate = new DateOnly(2021, 1, 1),
+            Price = 15.99m,
+            Quantity = 10
         };
 
-        _mockBookService.Setup(service => service.CreateBookAsync(book))
-            .ThrowsAsync(new DbUpdateException()); // Simulate a conflict
+        var pgException = new PostgresException("test", "test", "test", "23505");
+        var mockException = new DbUpdateException("test", pgException);
+
+        _mockBookService.Setup(s => s.CreateBookAsync(book))
+            .ThrowsAsync(mockException);
 
         // Act
         var result = await _booksController.CreateBook(book);
 
         // Assert
         var conflictResult = Assert.IsType<ConflictObjectResult>(result.Result);
-        Assert.Equal("Error updating book.", conflictResult.Value);
+        Assert.Equal("Book with conflicting ISBN or Title/Author combination exists", conflictResult?.Value?.ToString());
+    }
+
+    [Fact]
+    public async Task UpdateBook_ReturnsConflict_WhenDuplicateISBNExists()
+    {
+        // Arrange
+        var book = new Book
+        {
+            ID = 1,
+            Title = "Original Book",
+            Author = "Original Author",
+            ISBN = "DuplicateISBN123",
+            PublishedDate = new DateOnly(2021, 1, 1),
+            Price = 20.99m,
+            Quantity = 5
+        };
+
+        var pgException = new PostgresException("Duplicate ISBN", "P0001", "Duplicate ISBN", "23505");
+        var mockException = new DbUpdateException("Conflict on ISBN", pgException);
+
+        _mockBookService.Setup(s => s.UpdateBookAsync(book))
+            .ThrowsAsync(mockException);
+
+        // Act
+        var result = await _booksController.PutBook(book.ID, book);
+
+        // Assert
+        var conflictResult = Assert.IsType<ConflictObjectResult>(result);
+        Assert.Equal("Book with conflicting ISBN or Title/Author combination exists", conflictResult?.Value?.ToString());
+    }
+
+    [Fact]
+    public async Task UpdateBook_ReturnsConflict_WhenDuplicateTitleAuthorExists()
+    {
+        // Arrange
+        var book = new Book
+        {
+            ID = 2,
+            Title = "Duplicate Title",
+            Author = "Duplicate Author",
+            ISBN = "1234567890",
+            PublishedDate = new DateOnly(2021, 2, 1),
+            Price = 15.99m,
+            Quantity = 10
+        };
+
+        var pgException = new PostgresException("Duplicate Title/Author", "P0001", "Duplicate Title and Author", "23505");
+        var mockException = new DbUpdateException("Conflict on Title/Author", pgException);
+
+        _mockBookService.Setup(s => s.UpdateBookAsync(book))
+            .ThrowsAsync(mockException);
+
+        // Act
+        var result = await _booksController.PutBook(book.ID, book);
+
+        // Assert
+        var conflictResult = Assert.IsType<ConflictObjectResult>(result);
+        Assert.Equal("Book with conflicting ISBN or Title/Author combination exists", conflictResult?.Value?.ToString());
     }
 
 }
-
