@@ -6,6 +6,7 @@ using Identity.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace BookStoreApi.Controllers;
 
@@ -59,9 +60,19 @@ public class BooksController : ControllerBase
             await _bookService.CreateBookAsync(book);
             return CreatedAtAction(nameof(GetBook), new { id = book.ID }, book);
         }
-        catch (DbUpdateException e)
+        catch (DbUpdateException dbException)
         {
-            // TODO: unique constraint on Title or ISBN
+            if (dbException.GetBaseException() is PostgresException pgException)
+            {
+                switch (pgException.SqlState)
+                {
+                    case "23505":
+                        ModelState.AddModelError(string.Empty, "This entity exists in the database");
+                        return Conflict("Error updating book.");
+                    default:
+                        throw;
+                }
+            }
             return Conflict("Error updating book.");
         }
     }

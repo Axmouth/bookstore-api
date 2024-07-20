@@ -9,51 +9,32 @@ using Microsoft.AspNetCore.TestHost;
 
 public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStartup> where TStartup : class
 {
-protected override void ConfigureWebHost(IWebHostBuilder builder)
-{
-    builder.ConfigureServices(services =>
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // Remove existing DbContext configuration
-        var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
-        if (descriptor != null)
+        builder.ConfigureServices(services =>
         {
-            services.Remove(descriptor);
-        }
+            // Remove existing DbContext configuration
+            var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+            if (descriptor != null)
+            {
+                services.Remove(descriptor);
+            }
 
-        // Add DbContext with In-Memory Database for testing
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseInMemoryDatabase("InMemoryDbForTesting"));
-        
-        // Configure other services
-    });
+            // Add DbContext with In-Memory Database for testing
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseInMemoryDatabase("InMemoryDbForTesting"));
 
-    builder.ConfigureAppConfiguration((context, configBuilder) =>
-    {
-        configBuilder.AddJsonFile("appsettings.json");
-        // Add other configuration sources if needed
-    });
+            // Configure other services
+            services.AddControllers().AddApplicationPart(typeof(TStartup).Assembly);
+        });
 
-    builder.ConfigureServices((context, services) =>
-    {
-        var configuration = context.Configuration;
-        var bookStoreConfig = configuration.Get<BookStoreConfiguration>() ?? throw new InvalidOperationException("Failed to load the BookStore configuration");
-        
-        services.AddSingleton(bookStoreConfig.JwtSettings);
-        services.AddSingleton(bookStoreConfig.AdminSettings);
-    });
+        builder.ConfigureAppConfiguration((context, configBuilder) =>
+        {
+            configBuilder.AddJsonFile("appsettings.json");
+            // Add other configuration sources if needed
+        });
+    }
 
-    builder.ConfigureTestServices(services =>
-    {
-        using var scope = services.BuildServiceProvider().CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        // Ensure the database is clean before seeding
-        db.Database.EnsureDeleted();
-        db.Database.EnsureCreated();
-
-        // Seed the database with test data
-        TestDataSeeder.SeedTestData(db);
-    });
-}
 
 }
