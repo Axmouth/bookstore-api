@@ -1,19 +1,29 @@
 using System.Net;
 using System.Text.Json;
+using BookStoreApi.Responses;
 
 namespace BookStoreApi.Middlewares;
 
 public class ErrorHandlingMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly IWebHostEnvironment _env;
 
-    public ErrorHandlingMiddleware(RequestDelegate next)
+    public ErrorHandlingMiddleware(RequestDelegate next, IWebHostEnvironment env)
     {
         _next = next;
+        _env = env;
     }
 
     public async Task InvokeAsync(HttpContext httpContext)
     {
+        // Use Developer exception page in dev
+        if (_env.IsDevelopment())
+        {
+            await _next(httpContext);
+            return;
+        }
+
         try
         {
             await _next(httpContext);
@@ -24,7 +34,7 @@ public class ErrorHandlingMiddleware
         }
     }
 
-    private Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
@@ -37,12 +47,3 @@ public class ErrorHandlingMiddleware
     }
 }
 
-public class ErrorDetails
-{
-    public int StatusCode { get; set; }
-    public required string Message { get; set; }
-    public override string ToString()
-    {
-        return JsonSerializer.Serialize(this);
-    }
-}

@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BookStoreApi.Controllers;
 
 [ApiController]
+[Authorize(Roles = "Admin")]
 [Route("api/v1/[controller]")]
 public class BooksController : ControllerBase
 {
@@ -21,6 +22,7 @@ public class BooksController : ControllerBase
     }
 
     // GET /books
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Book>>> GetBooks([FromQuery] GetBooksQuery query)
     {
@@ -30,6 +32,7 @@ public class BooksController : ControllerBase
 
 
     // GET /books/:id
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<ActionResult<Book>> GetBook(int id)
     {
