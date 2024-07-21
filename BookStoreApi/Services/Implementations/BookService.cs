@@ -13,7 +13,7 @@ public class BookService : IBookService
         _bookRepository = bookRepository;
     }
 
-    public async Task<IEnumerable<Book>> GetBooksAsync(GetBooksQuery query)
+    public async Task<PagedResult<Book>> GetBooksAsync(GetBooksQuery query)
     {
         return await _bookRepository.GetBooksAsync(query);
     }

@@ -29,10 +29,13 @@ public class BooksController : ControllerBase
     // GET /books
     [AllowAnonymous]
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Book>>> GetBooks([FromQuery] GetBooksQuery query)
+    public async Task<ActionResult<GetBooksResponse>> GetBooks([FromQuery] GetBooksQuery query)
     {
-        var books = await _bookService.GetBooksAsync(query);
-        return Ok(books);
+        var pagedResult = await _bookService.GetBooksAsync(query);
+
+        var response = GetBooksResponse.FromBooks(pagedResult.Items.ToArray(), query.PageNumber, query.PageSize, pagedResult.TotalCount, Url);
+
+        return Ok(response);
     }
 
 

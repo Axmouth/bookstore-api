@@ -14,7 +14,7 @@ public class BookRepository : IBookRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Book>> GetBooksAsync(GetBooksQuery query)
+    public async Task<PagedResult<Book>> GetBooksAsync(GetBooksQuery query)
     {
         var books = _context.Books.AsQueryable();
 
@@ -28,11 +28,19 @@ public class BookRepository : IBookRepository
             books = books.Where(b => b.Author.Contains(query.Author));
         }
 
-        return await books
+        var totalCount = await books.CountAsync();
+
+        var paginatedBooks = await books
             .OrderByDescending(b => b.PublishedDate)
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
             .ToListAsync();
+
+        return new PagedResult<Book>
+        {
+            Items = paginatedBooks,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<Book?> GetBookByIdAsync(int id)

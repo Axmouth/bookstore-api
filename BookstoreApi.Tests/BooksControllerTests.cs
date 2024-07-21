@@ -9,8 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Npgsql;
+using Xunit;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace BookStoreApi.Tests.Controllers;
 
@@ -45,15 +45,17 @@ public class BooksControllerTests
                     Quantity = 100
                 }
             };
-        _mockBookService.Setup(service => service.GetBooksAsync(query)).ReturnsAsync(books);
+        var pagedResult = new PagedResult<Book> { Items = books, TotalCount = books.Count };
+        _mockBookService.Setup(service => service.GetBooksAsync(query)).ReturnsAsync(pagedResult);
 
         // Act
         var result = await _booksController.GetBooks(query);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var returnBooks = Assert.IsType<List<Book>>(okResult.Value);
-        Assert.Single(returnBooks);
+        var returnBooks = Assert.IsType<GetBooksResponse>(okResult.Value);
+        Assert.Single(returnBooks.Books);
+        Assert.Equal(1, returnBooks.TotalItems);
     }
 
     [Fact]
@@ -222,5 +224,4 @@ public class BooksControllerTests
         var details = JsonSerializer.Deserialize<ErrorDetails>(conflictResult?.Value?.ToString() ?? throw new Exception("Result is null"));
         Assert.Equal("Book with conflicting ISBN or Title/Author combination exists", details?.Message);
     }
-
 }
