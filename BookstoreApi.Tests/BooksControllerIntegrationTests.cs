@@ -13,50 +13,19 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit.Abstractions;
 
-public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicationFactory<Program>>
+public class BooksControllerIntegrationTests : TestBase
 {
-    private readonly HttpClient _client;
+
     private readonly JwtSettings _jwtSettings;
-    private readonly CustomWebApplicationFactory<Program> _factory;
-    private readonly AppDbContext _dbContext;
-    private readonly ITestOutputHelper _testOutputHelper;
 
     private const string ApiBaseUrl = "/api/v1/Books";
 
-    public BooksControllerIntegrationTests(CustomWebApplicationFactory<Program> factory, ITestOutputHelper testOutputHelper)
+    public BooksControllerIntegrationTests(CustomWebApplicationFactory<Program> factory, ITestOutputHelper testOutputHelper) : base(factory, testOutputHelper)
     {
-        _testOutputHelper = testOutputHelper;
-        _factory = factory;
-        _client = _factory.CreateClient();
         _jwtSettings = _factory.Services.GetRequiredService<JwtSettings>();
 
         var jwtToken = JwtTokenGenerator.GenerateJwtToken(_jwtSettings, "Admin");
         _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
-
-        var scope = _factory.Services.CreateScope();
-        _dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        ResetDatabase();
-    }
-
-    private void SeedDatabase()
-    {
-        // Seed the database with initial test data
-        TestDataSeeder.SeedTestData(_dbContext);
-        _dbContext.SaveChanges();
-    }
-
-    private void ResetDatabase()
-    {
-        // Ensure the database is clean and then re-seed if necessary
-        _dbContext.Database.EnsureDeleted();
-        _dbContext.Database.EnsureCreated();
-        SeedDatabase();
-    }
-
-    protected void Dispose()
-    {
-        _dbContext.Database.EnsureDeleted();
     }
 
     private static JsonSerializerOptions GetJsonSerializerOptions() =>

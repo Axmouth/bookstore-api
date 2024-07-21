@@ -1,12 +1,18 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-COPY ["BookStoreApi.Tests/BookStoreApi.Tests.csproj", "BookStoreApi.Tests/"]
-COPY ["BookStoreApi/BookStoreApi.csproj", "BookStoreApi/"]
-RUN dotnet restore "BookStoreApi.Tests/BookStoreApi.Tests.csproj"
-COPY . .
-WORKDIR "/src/BookStoreApi.Tests"
-RUN dotnet build "BookStoreApi.Tests.csproj" -c Release -o /app/build
+WORKDIR /app
 
+# Copy csproj and restore as distinct layers
+COPY *.sln .
+COPY BookStoreApi/*.csproj ./BookStoreApi/
+COPY BookStoreApi.Tests/*.csproj ./BookStoreApi.Tests/
+RUN dotnet restore
+
+# Copy everything else and build
+COPY BookStoreApi/. ./BookStoreApi/
+COPY BookStoreApi.Tests/. ./BookStoreApi.Tests/
+WORKDIR /app/BookStoreApi.Tests
+RUN dotnet build
+
+# Run tests
 FROM build AS testrunner
-WORKDIR /src/BookStoreApi.Tests
-ENTRYPOINT ["dotnet", "test", "--logger:trx"]
+CMD ["dotnet", "test"]

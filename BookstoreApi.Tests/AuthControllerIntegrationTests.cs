@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using BookStoreApi.Data;
 using BookStoreApi.Requests;
 using BookStoreApi.Responses;
 using Identity.Models;
@@ -8,32 +9,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Xunit.Abstractions;
 
-public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory<Program>>
+public class AuthControllerTests : TestBase
 {
-    private readonly HttpClient _client;
-    private readonly CustomWebApplicationFactory<Program> _factory;
-
-    public AuthControllerTests(CustomWebApplicationFactory<Program> factory)
+    public AuthControllerTests(CustomWebApplicationFactory<Program> factory, ITestOutputHelper testOutputHelper) : base(factory, testOutputHelper)
     {
-        _factory = factory;
-        _client = factory.CreateClient();
-        SeedTestData();
-    }
-
-    private void SeedTestData()
-    {
-        using var scope = _factory.Services.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-
-        var user = new AppUser
-        {
-            UserName = "testuser",
-            Email = "testuser@example.com",
-            FirstName = "App",
-            LastName = "User"
-        };
-        userManager.CreateAsync(user, "Password123!").Wait();
     }
 
     [Fact]
@@ -42,12 +23,13 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory<Pro
         // Arrange
         var loginRequest = new LoginRequest
         {
-            Username = "testuser",
-            Password = "Password123!"
+            Username = TestDataSeeder.TestUserName,
+            Password = TestDataSeeder.TestUserPassword
         };
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/Auth/login", loginRequest);
+        _testOutputHelper.WriteLine(await response.Content.ReadAsStringAsync());
         var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
 
         // Assert
@@ -79,7 +61,7 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory<Pro
         // Arrange
         var loginRequest = new LoginRequest
         {
-            Username = "testuser",
+            Username = TestDataSeeder.TestUserName,
             Password = "WrongPassword!"
         };
 
@@ -102,7 +84,7 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory<Pro
 #pragma warning restore CS8625
 
         mockUserManager.Setup(um => um.FindByNameAsync(It.IsAny<string>()))
-            .ThrowsAsync(new Exception("Test exception"));
+            .ThrowsAsync(new Exception("An unexpected error occurred."));
 
         // Replace the services just for this request
         var client = _factory.WithWebHostBuilder(builder =>
@@ -115,8 +97,8 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory<Pro
 
         var loginRequest = new LoginRequest
         {
-            Username = "testuser",
-            Password = "Password123!"
+            Username = TestDataSeeder.TestUserName,
+            Password = TestDataSeeder.TestUserPassword
         };
 
         // Act
@@ -127,7 +109,7 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory<Pro
 
         var responseContent = await response.Content.ReadAsStringAsync();
         var details = JsonSerializer.Deserialize<ErrorDetails>(responseContent);
-        Assert.Equal("Test exception", details?.Message);
+        Assert.Equal("An unexpected error occurred.", details?.Message);
     }
 
 }

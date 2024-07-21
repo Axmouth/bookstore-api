@@ -155,7 +155,10 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var dbContext = services.GetRequiredService<AppDbContext>();
-        dbContext.Database.Migrate();
+        if (dbContext.Database.IsRelational())
+        {
+            dbContext.Database.Migrate();
+        }
 
         var userManager = services.GetRequiredService<UserManager<AppUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
