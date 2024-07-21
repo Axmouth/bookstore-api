@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bookstore}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  web:
+    image: bookstoreapi:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      PostgreSQL__ConnectionString: ${PostgreSQL__ConnectionString:-Host=db;Database=bookstore;Username=admin;Password=admin123}
+      JwtSettings__Secret: ${JwtSettings__Secret:-Secret123456789000000000000000000000000000}
+      JwtSettings__Issuer: ${JwtSettings__Issuer:-BookStoreIssuer}
+      JwtSettings__Audience: ${JwtSettings__Audience:-BookStoreAudience}
+      JwtSettings__TokenLifetime: ${JwtSettings__TokenLifetime:-120}
+      AdminSettings__AdminEmail: ${AdminSettings__AdminEmail:-admin@bookstore.com}
+      AdminSettings__AdminPassword: ${AdminSettings__AdminPassword:-Admin@1231}
+      AdminSettings__AdminUsername: ${AdminSettings__AdminUsername:-admin}
+    ports:
+      - "5000:8080"
+    depends_on:
+      - db
+
+volumes:
+  db-data:
