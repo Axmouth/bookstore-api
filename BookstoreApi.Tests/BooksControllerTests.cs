@@ -89,7 +89,7 @@ public class BooksControllerTests
     {
         // Arrange
         var bookId = 1;
-        _mockBookService.Setup(service => service.GetBookByIdAsync(bookId)).ReturnsAsync((Book)null);
+        _mockBookService.Setup(service => service.GetBookByIdAsync(bookId)).ReturnsAsync((Book?)null);
 
         // Act
         var result = await _booksController.GetBook(bookId);
@@ -147,7 +147,7 @@ public class BooksControllerTests
         var actionResult = Assert.IsType<ActionResult<CreateBookResponse>>(result);
         var createdAtActionResult = Assert.IsType<CreatedAtActionResult>(actionResult.Result);
         Assert.Equal(nameof(_booksController.GetBook), createdAtActionResult.ActionName);
-        Assert.Equal(book.Id, ((CreateBookResponse)createdAtActionResult.Value).Id);
+        Assert.Equal(book.Id, ((CreateBookResponse)createdAtActionResult.Value!).Id);
     }
 
     [Fact]
@@ -189,7 +189,7 @@ public class BooksControllerTests
 
         // Assert
         var conflictResult = Assert.IsType<ConflictObjectResult>(result?.Result);
-        var details = JsonSerializer.Deserialize<ErrorDetails>(conflictResult?.Value?.ToString() ?? throw new Exception("Result is null"));
+        var details = JsonSerializer.Deserialize<ErrorDetails>(conflictResult?.Value?.ToString()!);
         Assert.Equal("Book with conflicting ISBN or Title/Author combination exists", details?.Message);
     }
 
@@ -221,7 +221,7 @@ public class BooksControllerTests
 
         // Assert
         var conflictResult = Assert.IsType<ConflictObjectResult>(result.Result);
-        var details = JsonSerializer.Deserialize<ErrorDetails>(conflictResult?.Value?.ToString() ?? throw new Exception("Result is null"));
+        var details = JsonSerializer.Deserialize<ErrorDetails>(conflictResult?.Value?.ToString()!);
         Assert.Equal("Book with conflicting ISBN or Title/Author combination exists", details?.Message);
     }
 }

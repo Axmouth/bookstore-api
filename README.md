@@ -24,6 +24,7 @@ This project is a BookStore API built with ASP.NET Core and PostgreSQL. It provi
     - [Testing Strategy](#testing-strategy)
     - [Seeded Admin User](#seeded-admin-user)
     - [Docker and Docker Compose](#docker-and-docker-compose)
+    - [Request/Response Objects](#requestresponse-objects)
 
 ## Prerequisites
 
@@ -153,3 +154,12 @@ An admin user is seeded during database initialization to facilitate immediate u
 
 ### Docker and Docker Compose
 Docker containerizes the application, ensuring consistent behavior across different environments. Docker Compose manages multi-container setups, simplifying the process of running the entire stack locally and in CI/CD pipelines, enhancing development efficiency and deployment consistency.
+
+### Request/Response Objects
+
+Using dedicated request and response objects allows for:
+- **Controlled Attribute Exposure**: Easily manage which attributes are modifiable, e.g., excluding ISBN from updates.
+- **Validation**: Enforce data integrity and business rules at the API layer.
+- **Decoupling**: Separate API contracts from domain models, facilitating easier evolution and testing of the API.
+
+This approach improves flexibility, security, and maintainability of the API.

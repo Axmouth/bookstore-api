@@ -75,7 +75,7 @@ public class ErrorHandlingMiddleware
     public static string GetStatusCodeMessage(HttpContext context)
     {
         var statusCodeField = typeof(StatusCodes).GetFields(BindingFlags.Public | BindingFlags.Static)
-            .FirstOrDefault(f => (int)f.GetValue(null) == context.Response.StatusCode);
+            .FirstOrDefault(f => (int?)f.GetValue(null) == context.Response.StatusCode);
 
         if (statusCodeField == null)
         {

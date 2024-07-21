@@ -137,7 +137,7 @@ public class BookServiceTests
     {
         // Arrange
         _mockBookRepository.Setup(repo => repo.GetBookByIdAsync(It.IsAny<int>()))
-            .ReturnsAsync((Book)null);
+            .ReturnsAsync((Book?)null);
 
         // Act
         var result = await _bookService.GetBookByIdAsync(999);
@@ -179,7 +179,7 @@ public class BookServiceTests
             .ReturnsAsync(book);
 
         _mockBookRepository.Setup(repo => repo.UpdateBookAsync(It.IsAny<Book>()))
-            .Returns(Task.FromResult(book));
+            .Returns(Task.FromResult(book)!);
 
         _mockBookRepository.Setup(repo => repo.ExecuteInTransactionAsync(It.IsAny<Func<Task<Book>>>()))
             .Returns<Func<Task<Book>>>(async action => await action());
