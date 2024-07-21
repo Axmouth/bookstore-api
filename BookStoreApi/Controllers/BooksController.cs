@@ -91,11 +91,9 @@ public class BooksController : ControllerBase
     {
         try
         {
-            Book book = request.ToBook();
-            book.Id = id;
-            var updated = await _bookService.UpdateBookAsync(book);
+            var updated = await _bookService.UpdateBookAsync(id, request);
 
-            if (updated is null)
+            if (updated == null)
             {
                 return NotFound();
             }
@@ -118,6 +116,7 @@ public class BooksController : ControllerBase
             throw;
         }
     }
+
 
     // DELETE /books/:id
     [Authorize(Roles = "Admin")]

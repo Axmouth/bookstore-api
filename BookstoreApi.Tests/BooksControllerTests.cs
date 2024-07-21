@@ -213,7 +213,7 @@ public class BooksControllerTests
         var bookRequest = UpdateBookRequest.FromBook(book);
         var bookId = book.Id ?? -1;
 
-        _mockBookService.Setup(s => s.UpdateBookAsync(It.IsAny<Book>()))
+        _mockBookService.Setup(s => s.UpdateBookAsync(It.IsAny<int>(), It.IsAny<UpdateBookRequest>()))
             .ThrowsAsync(mockException);
 
         // Act

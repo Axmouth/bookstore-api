@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using BookStoreApi.Annotations;
 using BookStoreApi.Models;
 
 namespace BookStoreApi.Requests;
@@ -13,6 +14,7 @@ public class CreateBookRequest
     public required string Author { get; set; }
 
     [Required]
+    [IsbnValidation(ErrorMessage = "Invalid ISBN format. ISBN should be either 10 or 13 characters long.")]
     public required string ISBN { get; set; }
 
     [Required]
@@ -30,12 +32,12 @@ public class CreateBookRequest
     {
         return new Book
         {
-            Author = this.Author,
-            ISBN = this.ISBN,
-            Title = this.Title,
-            Price = this.Price,
-            PublishedDate = this.PublishedDate,
-            Quantity = this.Quantity
+            Author = Author,
+            ISBN = ISBN,
+            Title = Title,
+            Price = Price,
+            PublishedDate = PublishedDate,
+            Quantity = Quantity
         };
     }
 

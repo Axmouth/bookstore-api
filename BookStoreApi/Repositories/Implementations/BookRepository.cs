@@ -80,4 +80,20 @@ public class BookRepository : IBookRepository
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var result = await action();
+            await transaction.CommitAsync();
+            return result;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
 }

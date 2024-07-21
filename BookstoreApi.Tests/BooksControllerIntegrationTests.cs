@@ -21,6 +21,8 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     private readonly AppDbContext _dbContext;
     private readonly ITestOutputHelper _testOutputHelper;
 
+    private const string ApiBaseUrl = "/api/v1/Books";
+
     public BooksControllerIntegrationTests(CustomWebApplicationFactory<Program> factory, ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
@@ -49,22 +51,16 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         // Ensure the database is clean and then re-seed if necessary
         _dbContext.Database.EnsureDeleted();
         _dbContext.Database.EnsureCreated();
-        SeedDatabase();  // Call a method to seed the database, if needed
+        SeedDatabase();
     }
 
     protected void Dispose()
     {
-        // Optionally clean up the database after each test if needed
         _dbContext.Database.EnsureDeleted();
     }
 
-    private static JsonSerializerOptions GetJsonSerializerOptions()
-    {
-        return new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-    }
+    private static JsonSerializerOptions GetJsonSerializerOptions() =>
+        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     private HttpClient CreateClientWithRole(string role)
     {
@@ -77,13 +73,8 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     [Fact]
     public async Task GetBook_ReturnsOk_WhenBookExists()
     {
-        // Arrange
         var bookId = 3;
-
-        // Act
-        var response = await _client.GetAsync($"/api/v1/books/{bookId}");
-
-        // Assert
+        var response = await _client.GetAsync($"{ApiBaseUrl}/{bookId}");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
         var book = JsonSerializer.Deserialize<Book>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
         Assert.NotNull(book);
@@ -99,7 +90,6 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         var request = new UpdateBookRequest
         {
             Title = "Updated Test Book",
-            ISBN = "1234567890123",
             Author = "Updated Author",
             PublishedDate = DateOnly.Parse("2002-01-01"),
             Price = 11.99m,
@@ -121,11 +111,9 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         var responseContent = JsonSerializer.Deserialize<UpdateBookResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
 
         Assert.Equal("Updated Test Book", book?.Title);  // Verify the title was updated correctly.
-
         Assert.Equal(request.Title, responseContent?.Title);
         Assert.Equal(request.Author, responseContent?.Author);
         Assert.Equal(request.Price, responseContent?.Price);
-        Assert.Equal(request.ISBN, responseContent?.ISBN);
         Assert.Equal(request.Quantity, responseContent?.Quantity);
         Assert.Equal(request.PublishedDate, responseContent?.PublishedDate);
     }
@@ -133,7 +121,6 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     [Fact]
     public async Task CreateBook_ReturnsCreated_WhenUserIsAdmin()
     {
-        // Arrange
         var book = new
         {
             Title = "Test Book",
@@ -145,23 +132,19 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         };
 
         var content = new StringContent(JsonSerializer.Serialize(book), Encoding.UTF8, "application/json");
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/books")
+        var request = new HttpRequestMessage(HttpMethod.Post, ApiBaseUrl)
         {
             Content = content
         };
 
-        // Act
         var response = await _client.SendAsync(request);
-
-        // Assert
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
     public async Task CreateBook_ReturnsUnauthorized_WhenNotLoggedIn()
     {
-        // Arrange
-        var client = _factory.CreateClient();  // No JWT Token
+        var client = _factory.CreateClient();
 
         var book = new
         {
@@ -174,22 +157,18 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         };
 
         var content = new StringContent(JsonSerializer.Serialize(book), Encoding.UTF8, "application/json");
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/books")
+        var request = new HttpRequestMessage(HttpMethod.Post, ApiBaseUrl)
         {
             Content = content
         };
 
-        // Act
         var response = await client.SendAsync(request);
-
-        // Assert
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
     public async Task CreateBook_ReturnsCreated_WhenUserIsAuthorized()
     {
-        // Arrange
         var book = new
         {
             Title = "Authorized Test Book",
@@ -201,73 +180,52 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         };
 
         var content = new StringContent(JsonSerializer.Serialize(book), Encoding.UTF8, "application/json");
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/books")
+        var request = new HttpRequestMessage(HttpMethod.Post, ApiBaseUrl)
         {
             Content = content
         };
 
-        // Act
         var response = await _client.SendAsync(request);
-
-        // Assert
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
     public async Task UpdateBook_ReturnsUnauthorized_WhenNotLoggedIn()
     {
-        // Arrange
-        var client = _factory.CreateClient();  // No JWT Token
+        var client = _factory.CreateClient();
         var request = new UpdateBookRequest
         {
             Title = "Unauthorized Update",
-            ISBN = "1234567890123",
             Author = "Test Author",
             PublishedDate = DateOnly.Parse("2020-01-01"),
             Price = 15.99m,
             Quantity = 5
         };
 
-        // Act
-        var response = await client.PutAsJsonAsync("/api/v1/books/1", request);
-
-        // Assert
+        var response = await client.PutAsJsonAsync($"{ApiBaseUrl}/1", request);
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
     public async Task DeleteBook_ReturnsUnauthorized_WhenNotLoggedIn()
     {
-        // Arrange
-        var client = _factory.CreateClient();  // No JWT Token
-
-        // Act
-        var response = await client.DeleteAsync("/api/v1/books/1");
-
-        // Assert
+        var client = _factory.CreateClient();
+        var response = await client.DeleteAsync($"{ApiBaseUrl}/1");
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
     public async Task GetAllBooks_ReturnsOk_WhenUserIsAuthorized()
     {
-        // Act
-        var response = await _client.GetAsync("/api/v1/books");
-
-        // Assert
+        var response = await _client.GetAsync(ApiBaseUrl);
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
     public async Task GetBook_ReturnsOk_WhenUserIsAuthorized()
     {
-        // Arrange
         var bookId = 2;
-
-        // Act
-        var response = await _client.GetAsync($"/api/v1/books/{bookId}");
-
-        // Assert
+        var response = await _client.GetAsync($"{ApiBaseUrl}/{bookId}");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
         var book = JsonSerializer.Deserialize<Book>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
         Assert.NotNull(book);
@@ -277,27 +235,22 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     [Fact]
     public async Task UpdateBook_ReturnsOk_WhenUserIsAdmin()
     {
-        // Arrange
         var request = new UpdateBookRequest
         {
             Title = "Updated Test Book",
-            ISBN = "1234567890123",
             Author = "Updated Author",
             PublishedDate = DateOnly.Parse("2020-01-01"),
             Price = 11.99m,
             Quantity = 50
         };
 
-        // Act
-        var response = await _client.PutAsJsonAsync($"/api/v1/books/1", request);
+        var response = await _client.PutAsJsonAsync($"{ApiBaseUrl}/1", request);
         var responseContent = JsonSerializer.Deserialize<UpdateBookResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
 
-        // Assert
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(request.Title, responseContent?.Title);
         Assert.Equal(request.Author, responseContent?.Author);
         Assert.Equal(request.Price, responseContent?.Price);
-        Assert.Equal(request.ISBN, responseContent?.ISBN);
         Assert.Equal(request.Quantity, responseContent?.Quantity);
         Assert.Equal(request.PublishedDate, responseContent?.PublishedDate);
     }
@@ -305,18 +258,14 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     [Fact]
     public async Task DeleteBook_ReturnsNoContent_WhenUserIsAdmin()
     {
-        // Act
-        var response = await _client.DeleteAsync("/api/v1/books/1");
-
-        // Assert
+        var response = await _client.DeleteAsync($"{ApiBaseUrl}/1");
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
     }
 
     [Fact]
     public async Task CreateBook_ReturnsForbidden_WhenUserIsNotAdmin()
     {
-        // Arrange
-        var client = CreateClientWithRole("User");  // Non-admin role
+        var client = CreateClientWithRole("User");
         var request = new CreateBookRequest
         {
             Title = "Forbidden Test Book",
@@ -327,194 +276,208 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
             Quantity = 100
         };
 
-        // Act
-        var response = await client.PostAsJsonAsync("/api/v1/books", request);
-
-        // Assert
+        var response = await client.PostAsJsonAsync(ApiBaseUrl, request);
         Assert.Equal(System.Net.HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
     public async Task UpdateBook_ReturnsForbidden_WhenUserIsNotAdmin()
     {
-        // Arrange
-        var client = CreateClientWithRole("User");  // Non-admin role
+        var client = CreateClientWithRole("User");
         var request = new UpdateBookRequest
         {
             Title = "Unauthorized Update",
-            ISBN = "1234567890123",
             Author = "Test Author",
             PublishedDate = DateOnly.Parse("2020-01-01"),
             Price = 15.99m,
             Quantity = 5
         };
 
-        // Act
-        var response = await client.PutAsJsonAsync("/api/v1/books/1", request);
-
-        // Assert
+        var response = await client.PutAsJsonAsync($"{ApiBaseUrl}/1", request);
         Assert.Equal(System.Net.HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
     public async Task DeleteBook_ReturnsForbidden_WhenUserIsNotAdmin()
     {
-        // Arrange
-        var client = CreateClientWithRole("User");  // Non-admin role
-
-        // Act
-        var response = await client.DeleteAsync("/api/v1/books/1");
-
-        // Assert
+        var client = CreateClientWithRole("User");
+        var response = await client.DeleteAsync($"{ApiBaseUrl}/1");
         Assert.Equal(System.Net.HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
     public async Task GetBooks_ReturnsCorrectBooks_ByTitle()
     {
-        // Act
-        var response = await _client.GetAsync("/api/v1/books?Title=Initial Test Book");
-
-        // Assert
+        var response = await _client.GetAsync($"{ApiBaseUrl}?Title=Initial Test Book");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
-        Assert.NotNull(books);
-        Assert.Single(books);
-        Assert.Equal("Initial Test Book", books[0].Title);
+        var booksResponse = JsonSerializer.Deserialize<GetBooksResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
+        Assert.NotNull(booksResponse);
+        Assert.Single(booksResponse.Books);
+        Assert.Equal(1, booksResponse.TotalItems);
+        Assert.Equal(1, booksResponse.PageNumber);
+        Assert.Equal(10, booksResponse.PageSize);
+        Assert.Null(booksResponse.NextPage);
+        Assert.Null(booksResponse.PreviousPage);
+        Assert.Equal("Initial Test Book", booksResponse.Books[0].Title);
     }
 
     [Fact]
     public async Task GetBooks_ReturnsCorrectBooks_ByPartialTitle()
     {
-        // Act
-        var response = await _client.GetAsync("/api/v1/books?Title=Filtered");
-
-        // Assert
+        var response = await _client.GetAsync($"{ApiBaseUrl}?Title=Filtered");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
-        Assert.NotNull(books);
-        Assert.Equal(2, books.Count);
-        Assert.Equal("First Filtered Test Book", books[0].Title);
-        Assert.Equal("Second Filtered Test Book", books[1].Title);
+        var booksResponse = JsonSerializer.Deserialize<GetBooksResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
+        Assert.NotNull(booksResponse);
+        Assert.Equal(2, booksResponse.Books.Length);
+        Assert.Equal(2, booksResponse.TotalItems);
+        Assert.Equal(1, booksResponse.PageNumber);
+        Assert.Equal(10, booksResponse.PageSize);
+        Assert.Null(booksResponse.NextPage);
+        Assert.Null(booksResponse.PreviousPage);
+        Assert.Equal("First Filtered Test Book", booksResponse.Books[0].Title);
+        Assert.Equal("Second Filtered Test Book", booksResponse.Books[1].Title);
     }
 
     [Fact]
     public async Task GetBooks_ReturnsCorrectBooks_ByAuthor()
     {
-        // Act
-        var response = await _client.GetAsync("/api/v1/books?Author=Fourth Author");
-
-        // Assert
+        var response = await _client.GetAsync($"{ApiBaseUrl}?Author=Fourth Author");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
-        Assert.NotNull(books);
-        Assert.Equal(3, books.Count);
+        var booksResponse = JsonSerializer.Deserialize<GetBooksResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
+        Assert.NotNull(booksResponse);
+        Assert.Equal(3, booksResponse.Books.Length);
+        Assert.Equal(3, booksResponse.TotalItems);
+        Assert.Equal(1, booksResponse.PageNumber);
+        Assert.Equal(10, booksResponse.PageSize);
+        Assert.Null(booksResponse.NextPage);
+        Assert.Null(booksResponse.PreviousPage);
+        Assert.Equal(3, booksResponse.Books.Length);
     }
 
     [Fact]
     public async Task GetBooks_ReturnsCorrectBooks_ByPartialAuthor()
     {
-        // Act
-        var response = await _client.GetAsync("/api/v1/books?Author=Filter Test");
-
-        // Assert
+        var response = await _client.GetAsync($"{ApiBaseUrl}?Author=Filter Test");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
-        Assert.NotNull(books);
-        Assert.Single(books);
+        var booksResponse = JsonSerializer.Deserialize<GetBooksResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
+        Assert.NotNull(booksResponse);
+        Assert.Single(booksResponse.Books);
+        Assert.Equal(1, booksResponse.TotalItems);
+        Assert.Equal(1, booksResponse.PageNumber);
+        Assert.Equal(10, booksResponse.PageSize);
+        Assert.Null(booksResponse.NextPage);
+        Assert.Null(booksResponse.PreviousPage);
     }
 
     [Fact]
     public async Task GetBooks_PaginatesCorrectly()
     {
-        // Act
-        var response = await _client.GetAsync("/api/v1/books?PageNumber=1&PageSize=2");
-
-        // Assert
+        var response = await _client.GetAsync($"{ApiBaseUrl}?PageNumber=1&PageSize=2");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
-        Assert.NotNull(books);
-        Assert.Equal(2, books.Count); // Check if only two books are returned
+        var booksResponse = JsonSerializer.Deserialize<GetBooksResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
+        Assert.NotNull(booksResponse);
+        Assert.Equal(2, booksResponse.Books.Length);
+        Assert.Equal(1, booksResponse.PageNumber);
+        Assert.Equal(2, booksResponse.PageSize);
+        Assert.Equal(7, booksResponse.TotalItems);
+        Assert.Equal($"http://localhost{ApiBaseUrl}?PageNumber=2&PageSize=2", booksResponse.NextPage);
+        Assert.Null(booksResponse.PreviousPage);
     }
 
     [Fact]
     public async Task GetBooks_SortsByPublishedDate_Descending()
     {
-        // Act
-        var response = await _client.GetAsync("/api/v1/books");
-
-        // Assert
+        var response = await _client.GetAsync(ApiBaseUrl);
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
-        Assert.NotNull(books);
+        var booksResponse = JsonSerializer.Deserialize<GetBooksResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
+        Assert.NotNull(booksResponse);
 
-        // Use LINQ to ensure each book's published date is greater than or equal to the next one's
-        bool isSortedDescending = books.Select(b => b.PublishedDate)
-                                        .SequenceEqual(books.Select(b => b.PublishedDate).OrderByDescending(d => d));
-
+        bool isSortedDescending = booksResponse.Books.Select(b => b.PublishedDate)
+                                        .SequenceEqual(booksResponse.Books.Select(b => b.PublishedDate).OrderByDescending(d => d));
         Assert.True(isSortedDescending, "Books are not sorted by published date in descending order.");
     }
 
     [Fact]
     public async Task GetBooks_ReturnsEmpty_WhenNoMatchFound()
     {
-        // Act
-        var response = await _client.GetAsync("/api/v1/books?Title=Nonexistent Book");
-
-        // Assert
+        var response = await _client.GetAsync($"{ApiBaseUrl}?Title=Nonexistent Book");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
-        Assert.NotNull(books);
-        Assert.Empty(books);
+        var booksResponse = JsonSerializer.Deserialize<GetBooksResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
+        Assert.NotNull(booksResponse);
+        Assert.Empty(booksResponse.Books);
     }
 
     [Fact]
     public async Task GetBooks_ReturnsBadRequest_WhenPageNumberIsInvalid()
     {
-        // Act
-        var response = await _client.GetAsync("/api/v1/books?PageNumber=-1");
-
-        // Assert
+        var response = await _client.GetAsync($"{ApiBaseUrl}?PageNumber=-1");
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    // These next tests rely on the descending by PublishedDate sorting to work. And not deleting/updating books that come up first using that
     [Fact]
     public async Task GetBooks_ReturnsFirstPageCorrectly()
     {
-        // Act
-        var response = await _client.GetAsync("/api/v1/books?PageNumber=1&PageSize=2");
-
-        // Assert
+        var response = await _client.GetAsync($"{ApiBaseUrl}?PageNumber=1&PageSize=2");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
+        var booksResponse = JsonSerializer.Deserialize<GetBooksResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
 
-        Assert.NotNull(books);
-        Assert.Equal(2, books.Count);
-        Assert.Equal("Fourth Test Book", books[0].Title);
-        Assert.Equal("Third Test Book", books[1].Title);
+        Assert.NotNull(booksResponse);
+        Assert.Equal(2, booksResponse.Books.Length);
+        Assert.Equal("Fourth Test Book", booksResponse.Books[0].Title);
+        Assert.Equal("Third Test Book", booksResponse.Books[1].Title);
+        Assert.Equal(1, booksResponse.PageNumber);
+        Assert.Equal(2, booksResponse.PageSize);
+        Assert.Equal(7, booksResponse.TotalItems);
+        Assert.Equal($"http://localhost{ApiBaseUrl}?PageNumber=2&PageSize=2", booksResponse.NextPage);
+        Assert.Null(booksResponse.PreviousPage);
     }
 
     [Fact]
     public async Task GetBooks_ReturnsSecondPageCorrectly()
     {
-        // Act
-        var response = await _client.GetAsync("/api/v1/books?PageNumber=2&PageSize=2");
-
-        // Assert
+        var response = await _client.GetAsync($"{ApiBaseUrl}?PageNumber=2&PageSize=2");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
+        var booksResponse = JsonSerializer.Deserialize<GetBooksResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
 
-        Assert.NotNull(books);
-        Assert.Equal(2, books.Count);
-        Assert.Equal("Fifth Test Book", books[0].Title);
-        Assert.Equal("First Filtered Test Book", books[1].Title);
+        Assert.NotNull(booksResponse);
+        Assert.Equal(2, booksResponse.Books.Length);
+        Assert.Equal("Fifth Test Book", booksResponse.Books[0].Title);
+        Assert.Equal("First Filtered Test Book", booksResponse.Books[1].Title);
+        Assert.Equal(2, booksResponse.Books.Length);
+        Assert.Equal(2, booksResponse.PageNumber);
+        Assert.Equal(2, booksResponse.PageSize);
+        Assert.Equal(7, booksResponse.TotalItems);
+        Assert.Equal($"http://localhost{ApiBaseUrl}?PageNumber=3&PageSize=2", booksResponse.NextPage);
+        Assert.Equal($"http://localhost{ApiBaseUrl}?PageNumber=1&PageSize=2", booksResponse.PreviousPage);
+    }
+
+    [Fact]
+    public async Task GetBooks_ReturnsNextPageLink()
+    {
+        var response = await _client.GetAsync($"{ApiBaseUrl}?PageNumber=1&PageSize=2");
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        var booksResponse = JsonSerializer.Deserialize<GetBooksResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
+
+        Assert.NotNull(booksResponse);
+        Assert.NotNull(booksResponse.NextPage);
+        Assert.Equal($"http://localhost{ApiBaseUrl}?PageNumber=2&PageSize=2", booksResponse.NextPage);
+    }
+
+    [Fact]
+    public async Task GetBooks_ReturnsPreviousPageLink()
+    {
+        var response = await _client.GetAsync($"{ApiBaseUrl}?PageNumber=2&PageSize=2");
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        var booksResponse = JsonSerializer.Deserialize<GetBooksResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
+
+        Assert.NotNull(booksResponse);
+        Assert.NotNull(booksResponse.PreviousPage);
+        Assert.Equal($"http://localhost{ApiBaseUrl}?PageNumber=1&PageSize=2", booksResponse.PreviousPage);
     }
 
     [Fact]
     public async Task CreateBook_ReturnsServerError_OnException()
     {
-        // Arrange
         var localMockBookService = new Mock<IBookService>();
         localMockBookService.Setup(service => service.CreateBookAsync(It.IsAny<Book>()))
                             .Throws(new Exception("Simulated internal error"));
@@ -539,19 +502,15 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
             Quantity = 100
         };
 
-        // Act
-        var response = await client.PostAsJsonAsync("/api/v1/books", request);
-
-        // Assert
+        var response = await client.PostAsJsonAsync(ApiBaseUrl, request);
         Assert.Equal(System.Net.HttpStatusCode.InternalServerError, response.StatusCode);
     }
 
     [Fact]
     public async Task UpdateBook_ReturnsServerError_OnException()
     {
-        // Arrange
         var localMockBookService = new Mock<IBookService>();
-        localMockBookService.Setup(service => service.UpdateBookAsync(It.IsAny<Book>()))
+        localMockBookService.Setup(service => service.UpdateBookAsync(It.IsAny<int>(), It.IsAny<UpdateBookRequest>()))
                             .Throws(new Exception("Simulated internal error"));
 
         var client = _factory.WithWebHostBuilder(builder =>
@@ -568,24 +527,19 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         var request = new UpdateBookRequest
         {
             Title = "Error Test Book",
-            ISBN = "0000000000",
             Author = "Error",
             PublishedDate = DateOnly.Parse("2021-01-01"),
             Price = 10.99m,
             Quantity = 100
         };
 
-        // Act
-        var response = await client.PutAsJsonAsync("/api/v1/books/1", request);
-
-        // Assert
+        var response = await client.PutAsJsonAsync($"{ApiBaseUrl}/1", request);
         Assert.Equal(System.Net.HttpStatusCode.InternalServerError, response.StatusCode);
     }
 
     [Fact]
     public async Task DeleteBook_ReturnsServerError_OnException()
     {
-        // Arrange
         var localMockBookService = new Mock<IBookService>();
         localMockBookService.Setup(service => service.DeleteBookAsync(It.IsAny<int>()))
                             .Throws(new Exception("Simulated internal error"));
@@ -601,10 +555,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         var jwtToken = JwtTokenGenerator.GenerateJwtToken(_jwtSettings, "Admin");
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
 
-        // Act
-        var response = await client.DeleteAsync("/api/v1/books/1");
-
-        // Assert
+        var response = await client.DeleteAsync($"{ApiBaseUrl}/1");
         Assert.Equal(System.Net.HttpStatusCode.InternalServerError, response.StatusCode);
     }
 }

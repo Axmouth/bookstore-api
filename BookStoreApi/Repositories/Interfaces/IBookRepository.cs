@@ -10,5 +10,6 @@ public interface IBookRepository
     Task<Book> CreateBookAsync(Book book);
     Task<Book?> UpdateBookAsync(Book book);
     Task<bool> DeleteBookAsync(int id);
+    Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action);
 }
 

@@ -4,6 +4,7 @@ using BookStoreApi.Services;
 using BookStoreApi.Queries;
 using Moq;
 using Xunit;
+using BookStoreApi.Requests;
 
 namespace BookStoreApi.Tests.Services;
 
@@ -156,7 +157,7 @@ public class BookServiceTests
 
         // Assert
         _mockBookRepository.Verify(repo => repo.CreateBookAsync(book), Times.Once);
-        _mockBookRepository.VerifyNoOtherCalls(); // Verify no other calls
+        _mockBookRepository.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -164,13 +165,33 @@ public class BookServiceTests
     {
         // Arrange
         var book = new Book { Id = 1, Title = "Updated Book", Author = "Author 1", ISBN = "1234" };
+        var request = new UpdateBookRequest
+        {
+            Title = "Updated Book",
+            Author = "Author 1",
+            PublishedDate = DateOnly.Parse("2021-01-01"),
+            Price = 15.99m,
+            Quantity = 10
+        };
+        var bookId = book.Id ?? throw new Exception("Null Book Id");
+
+        _mockBookRepository.Setup(repo => repo.GetBookByIdAsync(bookId))
+            .ReturnsAsync(book);
+
+        _mockBookRepository.Setup(repo => repo.UpdateBookAsync(It.IsAny<Book>()))
+            .Returns(Task.FromResult(book));
+
+        _mockBookRepository.Setup(repo => repo.ExecuteInTransactionAsync(It.IsAny<Func<Task<Book>>>()))
+            .Returns<Func<Task<Book>>>(async action => await action());
 
         // Act
-        await _bookService.UpdateBookAsync(book);
+        var result = await _bookService.UpdateBookAsync(bookId, request);
 
         // Assert
-        _mockBookRepository.Verify(repo => repo.UpdateBookAsync(book), Times.Once);
-        _mockBookRepository.VerifyNoOtherCalls(); // Verify no other calls
+        _mockBookRepository.Verify(repo => repo.GetBookByIdAsync(bookId), Times.Once);
+        _mockBookRepository.Verify(repo => repo.UpdateBookAsync(It.Is<Book>(b => b.Title == request.Title && b.Author == request.Author)), Times.Once);
+        _mockBookRepository.Verify(repo => repo.ExecuteInTransactionAsync(It.IsAny<Func<Task<Book>>>()), Times.Once);
+        _mockBookRepository.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -184,7 +205,7 @@ public class BookServiceTests
 
         // Assert
         _mockBookRepository.Verify(repo => repo.DeleteBookAsync(bookId), Times.Once);
-        _mockBookRepository.VerifyNoOtherCalls(); // Verify no other calls
+        _mockBookRepository.VerifyNoOtherCalls();
     }
 
     [Fact]

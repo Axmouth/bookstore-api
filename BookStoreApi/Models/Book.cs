@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using BookStoreApi.Annotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookStoreApi.Models;
@@ -22,6 +23,7 @@ public class Book
     public required string Author { get; set; }
 
     [Required]
+    [IsbnValidation(ErrorMessage = "Invalid ISBN format. ISBN should be either 10 or 13 characters long.")]
     public required string ISBN { get; set; }
 
     [Required]

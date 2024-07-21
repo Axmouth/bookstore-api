@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using BookStoreApi.Data;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStartup> where TStartup : class
 {
@@ -21,7 +22,9 @@ public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStar
 
             // Add DbContext with In-Memory Database for testing
             services.AddDbContext<AppDbContext>(options =>
-                options.UseInMemoryDatabase("InMemoryDbForTesting"));
+                options.UseInMemoryDatabase("InMemoryDbForTesting")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
+                
 
             // Configure other services
             services.AddControllers()
@@ -31,7 +34,6 @@ public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStar
         builder.ConfigureAppConfiguration((context, configBuilder) =>
         {
             configBuilder.AddJsonFile("appsettings.json");
-            // TODO: Add other configuration sources
         });
     }
 
