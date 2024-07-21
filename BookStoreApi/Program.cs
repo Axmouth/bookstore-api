@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Identity.Models;
 using BookStoreApi.Services;
 using BookStoreApi.Repositories;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -109,7 +110,11 @@ builder.Services.Configure<IdentityOptions>(options =>
 });
 
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
 
 var app = builder.Build();
 

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using BookStoreApi.Data;
 using BookStoreApi.Options;
 using Microsoft.AspNetCore.TestHost;
+using System.Text.Json;
 
 public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStartup> where TStartup : class
 {
@@ -26,15 +27,15 @@ public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStar
                 options.UseInMemoryDatabase("InMemoryDbForTesting"));
 
             // Configure other services
-            services.AddControllers().AddApplicationPart(typeof(TStartup).Assembly);
+            services.AddControllers()
+                .AddApplicationPart(typeof(TStartup).Assembly);
         });
 
         builder.ConfigureAppConfiguration((context, configBuilder) =>
         {
             configBuilder.AddJsonFile("appsettings.json");
-            // Add other configuration sources if needed
+            // TODO: Add other configuration sources
         });
     }
-
 
 }

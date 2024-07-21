@@ -9,7 +9,7 @@ public static class TestDataSeeder
         {
             dbContext.Books.Add(new Book
             {
-                ID = 1,
+                Id = 1,
                 Title = "Initial Test Book",
                 Author = "Initial Author",
                 ISBN = "1234567890123",
@@ -19,7 +19,7 @@ public static class TestDataSeeder
             });
             dbContext.Books.Add(new Book
             {
-                ID = 2,
+                Id = 2,
                 Title = "Second Test Book",
                 Author = "Second Author",
                 ISBN = "1234567890987",
@@ -29,7 +29,7 @@ public static class TestDataSeeder
             });
             dbContext.Books.Add(new Book
             {
-                ID = 3,
+                Id = 3,
                 Title = "Third Test Book",
                 Author = "Second Author",
                 ISBN = "1234567890456",
@@ -39,7 +39,7 @@ public static class TestDataSeeder
             });
             dbContext.Books.Add(new Book
             {
-                ID = 4,
+                Id = 4,
                 Title = "Fourth Test Book",
                 Author = "Third Author Filter Test",
                 ISBN = "1234561230123",
@@ -49,7 +49,7 @@ public static class TestDataSeeder
             });
             dbContext.Books.Add(new Book
             {
-                ID = 5,
+                Id = 5,
                 Title = "Fifth Test Book",
                 Author = "Fourth Author",
                 ISBN = "0987654321123",
@@ -59,7 +59,7 @@ public static class TestDataSeeder
             });
             dbContext.Books.Add(new Book
             {
-                ID = 6,
+                Id = 6,
                 Title = "First Filtered Test Book",
                 Author = "Fourth Author",
                 ISBN = "1237654321123",
@@ -69,7 +69,7 @@ public static class TestDataSeeder
             });
             dbContext.Books.Add(new Book
             {
-                ID = 7,
+                Id = 7,
                 Title = "Second Filtered Test Book",
                 Author = "Fourth Author",
                 ISBN = "7897654561123",

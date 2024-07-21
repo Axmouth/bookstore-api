@@ -27,11 +27,11 @@ namespace BookStoreApi.Migrations
 
             modelBuilder.Entity("BookStoreApi.Models.Book", b =>
                 {
-                    b.Property<int>("ID")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Author")
                         .IsRequired()
@@ -54,11 +54,11 @@ namespace BookStoreApi.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.HasKey("ID");
+                    b.HasKey("Id");
 
                     b.HasIndex("Author");
 
-                    b.HasIndex("ID")
+                    b.HasIndex("Id")
                         .IsUnique();
 
                     b.HasIndex("ISBN")

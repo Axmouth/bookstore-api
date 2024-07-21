@@ -23,12 +23,12 @@ public class BookService : IBookService
         return await _bookRepository.GetBookByIdAsync(id);
     }
 
-    public async Task CreateBookAsync(Book book)
+    public async Task<Book> CreateBookAsync(Book book)
     {
-        await _bookRepository.CreateBookAsync(book);
+        return await _bookRepository.CreateBookAsync(book);
     }
 
-    public async Task<bool> UpdateBookAsync(Book book)
+    public async Task<Book?> UpdateBookAsync(Book book)
     {
         return await _bookRepository.UpdateBookAsync(book);
     }

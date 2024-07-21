@@ -12,4 +12,13 @@ public class AppDbContext : IdentityDbContext<AppUser>
 
     public DbSet<Book> Books { get; set; }
     public DbSet<InitializationStatus> InitializationStatus { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Book>()
+            .Property(b => b.Id)
+            .ValueGeneratedOnAdd();
+    }
 }

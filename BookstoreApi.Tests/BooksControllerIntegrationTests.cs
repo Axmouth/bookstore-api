@@ -1,16 +1,19 @@
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using BookStoreApi.Data;
 using BookStoreApi.Models;
 using BookStoreApi.Options;
+using BookStoreApi.Requests;
+using BookStoreApi.Responses;
 using BookStoreApi.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using Newtonsoft.Json;
 using Xunit;
+using Xunit.Abstractions;
 
 public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicationFactory<Program>>
 {
@@ -18,9 +21,11 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     private readonly JwtSettings _jwtSettings;
     private readonly CustomWebApplicationFactory<Program> _factory;
     private readonly AppDbContext _dbContext;
+    private readonly ITestOutputHelper _testOutputHelper;
 
-    public BooksControllerIntegrationTests(CustomWebApplicationFactory<Program> factory)
+    public BooksControllerIntegrationTests(CustomWebApplicationFactory<Program> factory, ITestOutputHelper testOutputHelper)
     {
+        _testOutputHelper = testOutputHelper;
         _factory = factory;
         _client = _factory.CreateClient();
         _jwtSettings = _factory.Services.GetRequiredService<JwtSettings>();
@@ -55,6 +60,29 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         _dbContext.Database.EnsureDeleted();
     }
 
+    private static JsonSerializerOptions GetJsonSerializerOptions()
+    {
+        return new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+    }
+
+    private int GetBookId(string title, string author)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var book = context.Books.FirstOrDefault(b => b.Title == title && b.Author == author);
+        if (book == null)
+        {
+            throw new Exception("Book not found");
+        }
+        return book.Id ?? -1;
+    }
+
+
+
     [Fact]
     public async Task GetBook_ReturnsOk_WhenBookExists()
     {
@@ -63,10 +91,10 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         var response = await _client.GetAsync($"/api/v1/books/{bookId}");
 
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var book = JsonConvert.DeserializeObject<Book>(await response.Content.ReadAsStringAsync());
+        var book = JsonSerializer.Deserialize<Book>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
 
         Assert.NotNull(book);
-        Assert.Equal(bookId, book?.ID);
+        Assert.Equal(bookId, book?.Id);
         Assert.Equal("Third Test Book", book?.Title);
     }
 
@@ -74,30 +102,37 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     public async Task UpdateBook_ReturnsNoContent_WhenBookExists_AndVerifyUpdate()
     {
         var bookId = 2;
-        var updatedBook = new
+        var request = new UpdateBookRequest
         {
-            ID = bookId,
             Title = "Updated Test Book",
             ISBN = "1234567890123",
             Author = "Updated Author",
-            PublishedDate = "2002-01-01",
+            PublishedDate = DateOnly.Parse("2002-01-01"),
             Price = 11.99m,
             Quantity = 50
         };
 
-        var content = new StringContent(JsonConvert.SerializeObject(updatedBook), Encoding.UTF8, "application/json");
+        var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
         var response = await _client.PutAsync($"/api/v1/books/{bookId}", content);
 
-        Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         // Fetch the book again to verify the update
         response = await _client.GetAsync($"/api/v1/books/{bookId}");
         response.EnsureSuccessStatusCode();
 
         var bookContent = await response.Content.ReadAsStringAsync();
-        var book = JsonConvert.DeserializeObject<Book>(bookContent);
+        var book = JsonSerializer.Deserialize<Book>(bookContent, GetJsonSerializerOptions());
+        var responseContent = JsonSerializer.Deserialize<UpdateBookResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
 
         Assert.Equal("Updated Test Book", book?.Title);  // Verify the title was updated correctly.
+
+        Assert.Equal(request.Title, responseContent?.Title);
+        Assert.Equal(request.Author, responseContent?.Author);
+        Assert.Equal(request.Price, responseContent?.Price);
+        Assert.Equal(request.ISBN, responseContent?.ISBN);
+        Assert.Equal(request.Quantity, responseContent?.Quantity);
+        Assert.Equal(request.PublishedDate, responseContent?.PublishedDate);
     }
 
     [Fact]
@@ -113,7 +148,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
             Quantity = 100
         };
 
-        var content = new StringContent(JsonConvert.SerializeObject(book), Encoding.UTF8, "application/json");
+        var content = new StringContent(JsonSerializer.Serialize(book), Encoding.UTF8, "application/json");
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/books")
         {
             Content = content
@@ -140,7 +175,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
             Quantity = 100
         };
 
-        var content = new StringContent(JsonConvert.SerializeObject(book), Encoding.UTF8, "application/json");
+        var content = new StringContent(JsonSerializer.Serialize(book), Encoding.UTF8, "application/json");
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/books")
         {
             Content = content
@@ -164,7 +199,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
             Quantity = 50
         };
 
-        var content = new StringContent(JsonConvert.SerializeObject(book), Encoding.UTF8, "application/json");
+        var content = new StringContent(JsonSerializer.Serialize(book), Encoding.UTF8, "application/json");
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/books")
         {
             Content = content
@@ -179,18 +214,17 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     public async Task UpdateBook_ReturnsUnauthorized_WhenNotLoggedIn()
     {
         var client = _factory.CreateClient();  // No JWT Token
-        var updatedBook = new
+        var request = new UpdateBookRequest
         {
-            ID = 1,
             Title = "Unauthorized Update",
             ISBN = "1234567890123",
             Author = "Test Author",
-            PublishedDate = "2020-01-01",
+            PublishedDate = DateOnly.Parse("2020-01-01"),
             Price = 15.99m,
             Quantity = 5
         };
 
-        var content = new StringContent(JsonConvert.SerializeObject(updatedBook), Encoding.UTF8, "application/json");
+        var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
         var response = await client.PutAsync("/api/v1/books/1", content);
 
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
@@ -221,29 +255,35 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         var response = await _client.GetAsync($"/api/v1/books/{bookId}");  // Assuming this book exists
 
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var book = JsonConvert.DeserializeObject<Book>(await response.Content.ReadAsStringAsync());
+        var book = JsonSerializer.Deserialize<Book>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
         Assert.NotNull(book);
-        Assert.Equal(bookId, book.ID);  // Assuming ID 1 exists from your seeded data
+        Assert.Equal(bookId, book.Id);  // Assuming Id 1 exists from your seeded data
     }
 
     [Fact]
-    public async Task UpdateBook_ReturnsNoContent_WhenUserIsAdmin()
+    public async Task UpdateBook_ReturnsOK_WhenUserIsAdmin()
     {
-        var updatedBook = new
+        var request = new UpdateBookRequest
         {
-            ID = 1,
             Title = "Updated Test Book",
             ISBN = "1234567890123",
             Author = "Updated Author",
-            PublishedDate = "2020-01-01",
+            PublishedDate = DateOnly.Parse("2020-01-01"),
             Price = 11.99m,
             Quantity = 50
         };
 
-        var content = new StringContent(JsonConvert.SerializeObject(updatedBook), Encoding.UTF8, "application/json");
-        var response = await _client.PutAsync("/api/v1/books/1", content);
+        var content = new StringContent(JsonSerializer.Serialize(request, GetJsonSerializerOptions()), Encoding.UTF8, "application/json");
+        var response = await _client.PutAsync($"/api/v1/books/1", content);
+        var responseContent = JsonSerializer.Deserialize<UpdateBookResponse>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
 
-        Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(request.Title, responseContent?.Title);
+        Assert.Equal(request.Author, responseContent?.Author);
+        Assert.Equal(request.Price, responseContent?.Price);
+        Assert.Equal(request.ISBN, responseContent?.ISBN);
+        Assert.Equal(request.Quantity, responseContent?.Quantity);
+        Assert.Equal(request.PublishedDate, responseContent?.PublishedDate);
     }
 
     [Fact]
@@ -261,17 +301,17 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         var jwtToken = JwtTokenGenerator.GenerateJwtToken(_jwtSettings, "User");  // Non-admin role
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
 
-        var book = new
+        var request = new CreateBookRequest
         {
             Title = "Forbidden Test Book",
             ISBN = "1234567890123",
             Author = "Unauthorized Author",
-            PublishedDate = "2020-01-01",
+            PublishedDate = DateOnly.Parse("2020-01-01"),
             Price = 10.99m,
             Quantity = 100
         };
 
-        var content = new StringContent(JsonConvert.SerializeObject(book), Encoding.UTF8, "application/json");
+        var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
         var response = await client.PostAsync("/api/v1/books", content);
 
         Assert.Equal(System.Net.HttpStatusCode.Forbidden, response.StatusCode);
@@ -284,18 +324,17 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         var jwtToken = JwtTokenGenerator.GenerateJwtToken(_jwtSettings, "User");  // Non-admin role
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
 
-        var updatedBook = new
+        var request = new UpdateBookRequest
         {
-            ID = 1,
             Title = "Unauthorized Update",
             ISBN = "1234567890123",
             Author = "Test Author",
-            PublishedDate = "2020-01-01",
+            PublishedDate = DateOnly.Parse("2020-01-01"),
             Price = 15.99m,
             Quantity = 5
         };
 
-        var content = new StringContent(JsonConvert.SerializeObject(updatedBook), Encoding.UTF8, "application/json");
+        var content = new StringContent(JsonSerializer.Serialize(request, GetJsonSerializerOptions()), Encoding.UTF8, "application/json");
         var response = await client.PutAsync("/api/v1/books/1", content);
 
         Assert.Equal(System.Net.HttpStatusCode.Forbidden, response.StatusCode);
@@ -318,7 +357,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     {
         var response = await _client.GetAsync("/api/v1/books?Title=Initial Test Book");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonConvert.DeserializeObject<List<Book>>(await response.Content.ReadAsStringAsync());
+        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
         Assert.NotNull(books);
         Assert.Single(books);
         Assert.Equal("Initial Test Book", books[0].Title);
@@ -329,7 +368,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     {
         var response = await _client.GetAsync("/api/v1/books?Title=Filtered");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonConvert.DeserializeObject<List<Book>>(await response.Content.ReadAsStringAsync());
+        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
         Assert.NotNull(books);
         Assert.Equal(2, books.Count);
         Assert.Equal("First Filtered Test Book", books[0].Title);
@@ -341,7 +380,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     {
         var response = await _client.GetAsync("/api/v1/books?Author=Fourth Author");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonConvert.DeserializeObject<List<Book>>(await response.Content.ReadAsStringAsync());
+        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
         Assert.NotNull(books);
         Assert.Equal(3, books.Count);
     }
@@ -351,7 +390,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     {
         var response = await _client.GetAsync("/api/v1/books?Author=Filter Test");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonConvert.DeserializeObject<List<Book>>(await response.Content.ReadAsStringAsync());
+        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
         Assert.NotNull(books);
         Assert.Single(books);
     }
@@ -361,7 +400,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     {
         var response = await _client.GetAsync("/api/v1/books?PageNumber=1&PageSize=2");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonConvert.DeserializeObject<List<Book>>(await response.Content.ReadAsStringAsync());
+        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
         Assert.NotNull(books);
         Assert.Equal(2, books.Count); // Check if only two books are returned
     }
@@ -371,7 +410,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     {
         var response = await _client.GetAsync("/api/v1/books");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonConvert.DeserializeObject<List<Book>>(await response.Content.ReadAsStringAsync());
+        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
         Assert.NotNull(books);
 
         // Use LINQ to ensure each book's published date is greater than or equal to the next one's
@@ -386,7 +425,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     {
         var response = await _client.GetAsync("/api/v1/books?Title=Nonexistent Book");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonConvert.DeserializeObject<List<Book>>(await response.Content.ReadAsStringAsync());
+        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
         Assert.NotNull(books);
         Assert.Empty(books);
     }
@@ -405,7 +444,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     {
         var response = await _client.GetAsync("/api/v1/books?PageNumber=1&PageSize=2");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonConvert.DeserializeObject<List<Book>>(await response.Content.ReadAsStringAsync());
+        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
 
         Assert.NotNull(books);
         Assert.Equal(2, books.Count);
@@ -418,7 +457,7 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
     {
         var response = await _client.GetAsync("/api/v1/books?PageNumber=2&PageSize=2");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        var books = JsonConvert.DeserializeObject<List<Book>>(await response.Content.ReadAsStringAsync());
+        var books = JsonSerializer.Deserialize<List<Book>>(await response.Content.ReadAsStringAsync(), GetJsonSerializerOptions());
 
         Assert.NotNull(books);
         Assert.Equal(2, books.Count);
@@ -445,17 +484,17 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         var jwtToken = JwtTokenGenerator.GenerateJwtToken(_jwtSettings, "Admin");
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
 
-        var book = new
+        var request = new CreateBookRequest
         {
             Title = "Error Test Book",
             ISBN = "0000000000",
             Author = "Error",
-            PublishedDate = "2021-01-01",
+            PublishedDate = DateOnly.Parse("2021-01-01"),
             Price = 10.99m,
             Quantity = 100
         };
 
-        var content = new StringContent(JsonConvert.SerializeObject(book), Encoding.UTF8, "application/json");
+        var content = new StringContent(JsonSerializer.Serialize(request, GetJsonSerializerOptions()), Encoding.UTF8, "application/json");
         var response = await client.PostAsync("/api/v1/books", content);
 
         Assert.Equal(System.Net.HttpStatusCode.InternalServerError, response.StatusCode);
@@ -481,18 +520,17 @@ public class BooksControllerIntegrationTests : IClassFixture<CustomWebApplicatio
         var jwtToken = JwtTokenGenerator.GenerateJwtToken(_jwtSettings, "Admin");
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
 
-        var book = new
+        var request = new UpdateBookRequest
         {
-            ID = 1,
             Title = "Error Test Book",
             ISBN = "0000000000",
             Author = "Error",
-            PublishedDate = "2021-01-01",
+            PublishedDate = DateOnly.Parse("2021-01-01"),
             Price = 10.99m,
             Quantity = 100
         };
 
-        var content = new StringContent(JsonConvert.SerializeObject(book), Encoding.UTF8, "application/json");
+        var content = new StringContent(JsonSerializer.Serialize(request, GetJsonSerializerOptions()), Encoding.UTF8, "application/json");
         var response = await client.PutAsync("/api/v1/books/1", content);
 
         Assert.Equal(System.Net.HttpStatusCode.InternalServerError, response.StatusCode);

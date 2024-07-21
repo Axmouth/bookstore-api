@@ -1,29 +1,30 @@
-ID,Title,Author,ISBN,PublishedDate,Price,Quantity
-1,"Pride and Prejudice",Jane Austen,9780140439516,1813-01-28,7.99,20
-2,"To Kill a Mockingbird",Harper Lee,9780446310727,1960-07-11,9.99,35
-3,"The Lord of the Rings Trilogy",J.R.R. Tolkien,9780261102694,1954-09-22,34.99,15
-4,"The Hitchhiker's Guide to the Galaxy",Douglas Adams,9780345391803,1979-10-12,8.99,22
-5,"Frankenstein",Mary Shelley,9780140621670,1818-03-08,6.99,18
-6,"One Hundred Years of Solitude",Gabriel García Márquez,9780307472736,1967-01-01,12.99,10
-7,"Dune",Frank Herbert,9780441014041,1965-08-01,14.99,8
-8,"The Great Gatsby",F. Scott Fitzgerald,9780743273565,1925-04-10,8.99,27
-9,"The Catcher in the Rye",J. D. Salinger,9780316769482,1951-07-16,9.99,19
-10,"1984",George Orwell,9780451524935,1949-06-08,11.99,14
-11,"The Handmaid's Tale",Margaret Atwood,9780345359943,1985-04-26,10.99,21
-12,"Beloved",Toni Morrison,9780449906169,1987-09-14,13.99,7
-13,"Things Fall Apart",Chinua Achebe,9780435900500,1958-01-01,9.99,16
-14,"Moby Dick",Herman Melville,9781503288049,1851-01-01,10.99,12
-15,"Jane Eyre",Charlotte Brontë,9780140439003,1847-10-16,8.99,24
-16,"Wuthering Heights",Emily Brontë,9780140620614,1847-12-08,7.99,23
-17,"The Adventures of Huckleberry Finn",Mark Twain,9781492623114,1885-12-18,9.99,11
-18,"The Metamorphosis",Franz Kafka,9780141982321,1915-01-01,6.99,20
-19,"The God of Small Things",Arundhati Roy,9780224037939,1997-04-29,11.99,13
-20,"Invisible Man",Ralph Ellison,9780679740375,1952-01-01,9.99,18
-21,"Sense and Sensibility",Jane Austen,9780140439523,1811-01-01,15.99,5
-22,The Martian,Andy Weir,9780345331605,2011-10-11,8.99,15
-23,The Book Thief,Markus Zusak,9780375838907,2005-03-01,9.99,29
-24,Fahrenheit 451,Ray Bradbury,9780451500910,1953-02-03,7.99,12
-25,The Alchemist,Paulo Coelho,9780061122418,1988-04-21,8.99,21
-26,Their Eyes Were Watching God,Zora Neale Hurston,9780618219130,1937-01-01,9.99,17
-27,The Remains of the Day,Kazuo Ishiguro,9780375751039,1989-06-15,10.99,5
-28,Cat's Cradle,Kurt Vonnegut,9780399119445,1963-01-01,7.99,8
+Id,Title,Author,ISBN,PublishedDate,Price,Quantity
+,"The Last Man",Mary Shelley,9781611735901,1826-02-01,6.99,18
+,"Pride and Prejudice",Jane Austen,9780140439516,1813-01-28,7.99,20
+,"To Kill a Mockingbird",Harper Lee,9780446310727,1960-07-11,9.99,35
+,"The Lord of the Rings Trilogy",J.R.R. Tolkien,9780261102694,1954-09-22,34.99,15
+,"The Hitchhiker's Guide to the Galaxy",Douglas Adams,9780345391803,1979-10-12,8.99,22
+,"Frankenstein",Mary Shelley,9780140621670,1818-03-08,6.99,18
+,"One Hundred Years of Solitude",Gabriel García Márquez,9780307472736,1967-01-01,12.99,10
+,"Dune",Frank Herbert,9780441014041,1965-08-01,14.99,8
+,"The Great Gatsby",F. Scott Fitzgerald,9780743273565,1925-04-10,8.99,27
+,"The Catcher in the Rye",J. D. Salinger,9780316769482,1951-07-16,9.99,19
+,"1984",George Orwell,9780451524935,1949-06-08,11.99,14
+,"The Handmaid's Tale",Margaret Atwood,9780345359943,1985-04-26,10.99,21
+,"Beloved",Toni Morrison,9780449906169,1987-09-14,13.99,7
+,"Things Fall Apart",Chinua Achebe,9780435900500,1958-01-01,9.99,16
+,"Moby Dick",Herman Melville,9781503288049,1851-01-01,10.99,12
+,"Jane Eyre",Charlotte Brontë,9780140439003,1847-10-16,8.99,24
+,"Wuthering Heights",Emily Brontë,9780140620614,1847-12-08,7.99,23
+,"The Adventures of Huckleberry Finn",Mark Twain,9781492623114,1885-12-18,9.99,11
+,"The Metamorphosis",Franz Kafka,9780141982321,1915-01-01,6.99,20
+,"The God of Small Things",Arundhati Roy,9780224037939,1997-04-29,11.99,13
+,"Invisible Man",Ralph Ellison,9780679740375,1952-01-01,9.99,18
+,"Sense and Sensibility",Jane Austen,9780140439523,1811-01-01,15.99,5
+,The Martian,Andy Weir,9780345331605,2011-10-11,8.99,15
+,The Book Thief,Markus Zusak,9780375838907,2005-03-01,9.99,29
+,Fahrenheit 451,Ray Bradbury,9780451500910,1953-02-03,7.99,12
+,The Alchemist,Paulo Coelho,9780061122418,1988-04-21,8.99,21
+,Their Eyes Were Watching God,Zora Neale Hurston,9780618219130,1937-01-01,9.99,17
+,The Remains of the Day,Kazuo Ishiguro,9780375751039,1989-06-15,10.99,5
+,Cat's Cradle,Kurt Vonnegut,9780399119445,1963-01-01,7.99,8

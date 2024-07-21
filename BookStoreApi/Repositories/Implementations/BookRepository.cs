@@ -40,23 +40,24 @@ public class BookRepository : IBookRepository
         return await _context.Books.FindAsync(id);
     }
 
-    public async Task CreateBookAsync(Book book)
+    public async Task<Book> CreateBookAsync(Book book)
     {
         await _context.Books.AddAsync(book);
         await _context.SaveChangesAsync();
+        return book;
     }
 
-    public async Task<bool> UpdateBookAsync(Book book)
+    public async Task<Book?> UpdateBookAsync(Book book)
     {
-        var existingBook = await _context.Books.FindAsync(book.ID);
+        var existingBook = await _context.Books.FindAsync(book.Id);
         if (existingBook == null)
         {
-            return false;
+            return null;
         }
 
         _context.Entry(existingBook).CurrentValues.SetValues(book);
         await _context.SaveChangesAsync();
-        return true;
+        return existingBook;
     }
 
     public async Task<bool> DeleteBookAsync(int id)

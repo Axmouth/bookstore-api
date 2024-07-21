@@ -1,21 +1,28 @@
+using System.Text.Json;
 using BookStoreApi.Controllers;
 using BookStoreApi.Models;
 using BookStoreApi.Queries;
+using BookStoreApi.Requests;
+using BookStoreApi.Responses;
 using BookStoreApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Npgsql;
+using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace BookStoreApi.Tests.Controllers;
 
 public class BooksControllerTests
 {
+    private readonly ITestOutputHelper _testOutputHelper;
     private readonly Mock<IBookService> _mockBookService;
     private readonly BooksController _booksController;
 
-    public BooksControllerTests()
+    public BooksControllerTests(ITestOutputHelper testOutputHelper)
     {
+        _testOutputHelper = testOutputHelper;
         _mockBookService = new Mock<IBookService>();
         _booksController = new BooksController(_mockBookService.Object);
     }
@@ -29,7 +36,7 @@ public class BooksControllerTests
             {
                 new Book
                 {
-                    ID = 1,
+                    Id = 1,
                     Title = "Test Book",
                     Author = "Author",
                     ISBN = "1234567890123",
@@ -56,7 +63,7 @@ public class BooksControllerTests
         var bookId = 1;
         var book = new Book
         {
-            ID = bookId,
+            Id = bookId,
             Title = "Test Book",
             Author = "Author",
             ISBN = "1234567890123",
@@ -72,7 +79,7 @@ public class BooksControllerTests
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         var returnBook = Assert.IsType<Book>(okResult.Value);
-        Assert.Equal(bookId, returnBook.ID);
+        Assert.Equal(bookId, returnBook.Id);
     }
 
     [Fact]
@@ -120,7 +127,7 @@ public class BooksControllerTests
         // Arrange
         var book = new Book
         {
-            ID = 1,
+            Id = 1,
             Title = "Test Book",
             Author = "Author",
             ISBN = "1234567890123",
@@ -129,39 +136,16 @@ public class BooksControllerTests
             Quantity = 100
         };
 
-        _mockBookService.Setup(service => service.CreateBookAsync(book)).Returns(Task.CompletedTask);
+        _mockBookService.Setup(service => service.CreateBookAsync(book)).Returns(Task.FromResult(book));
 
         // Act
         var result = await _booksController.CreateBook(book);
 
         // Assert
-        var actionResult = Assert.IsType<ActionResult<Book>>(result);
+        var actionResult = Assert.IsType<ActionResult<CreateBookResponse>>(result);
         var createdAtActionResult = Assert.IsType<CreatedAtActionResult>(actionResult.Result);
         Assert.Equal(nameof(_booksController.GetBook), createdAtActionResult.ActionName);
-        Assert.Equal(book.ID, ((Book)createdAtActionResult.Value).ID);
-    }
-
-    [Fact]
-    public async Task UpdateBook_ReturnsBadRequest_WhenIdDoesNotMatch()
-    {
-        // Arrange
-        var bookId = 1;
-        var book = new Book
-        {
-            ID = 2,
-            Title = "Updated Test Book",
-            Author = "Updated Author",
-            ISBN = "1234567890123",
-            PublishedDate = new DateOnly(2020, 1, 1),
-            Price = 10.99m,
-            Quantity = 100
-        };
-
-        // Act
-        var result = await _booksController.PutBook(bookId, book);
-
-        // Assert
-        Assert.IsType<BadRequestResult>(result);
+        Assert.Equal(book.Id, ((CreateBookResponse)createdAtActionResult.Value).Id);
     }
 
     [Fact]
@@ -202,17 +186,18 @@ public class BooksControllerTests
         var result = await _booksController.CreateBook(book);
 
         // Assert
-        var conflictResult = Assert.IsType<ConflictObjectResult>(result.Result);
-        Assert.Equal("Book with conflicting ISBN or Title/Author combination exists", conflictResult?.Value?.ToString());
+        var conflictResult = Assert.IsType<ConflictObjectResult>(result?.Result);
+        var details = JsonSerializer.Deserialize<ErrorDetails>(conflictResult?.Value?.ToString() ?? throw new Exception("Result is null"));
+        Assert.Equal("Book with conflicting ISBN or Title/Author combination exists", details?.Message);
     }
 
     [Fact]
-    public async Task UpdateBook_ReturnsConflict_WhenDuplicateISBNExists()
+    public async Task UpdateBook_ReturnsConflict_WhenDuplicateValueExists()
     {
         // Arrange
         var book = new Book
         {
-            ID = 1,
+            Id = 1,
             Title = "Original Book",
             Author = "Original Author",
             ISBN = "DuplicateISBN123",
@@ -223,45 +208,19 @@ public class BooksControllerTests
 
         var pgException = new PostgresException("Duplicate ISBN", "P0001", "Duplicate ISBN", "23505");
         var mockException = new DbUpdateException("Conflict on ISBN", pgException);
+        var bookRequest = UpdateBookRequest.FromBook(book);
+        var bookId = book.Id ?? -1;
 
-        _mockBookService.Setup(s => s.UpdateBookAsync(book))
+        _mockBookService.Setup(s => s.UpdateBookAsync(It.IsAny<Book>()))
             .ThrowsAsync(mockException);
 
         // Act
-        var result = await _booksController.PutBook(book.ID, book);
+        var result = await _booksController.UpdateBook(bookId, bookRequest);
 
         // Assert
-        var conflictResult = Assert.IsType<ConflictObjectResult>(result);
-        Assert.Equal("Book with conflicting ISBN or Title/Author combination exists", conflictResult?.Value?.ToString());
-    }
-
-    [Fact]
-    public async Task UpdateBook_ReturnsConflict_WhenDuplicateTitleAuthorExists()
-    {
-        // Arrange
-        var book = new Book
-        {
-            ID = 2,
-            Title = "Duplicate Title",
-            Author = "Duplicate Author",
-            ISBN = "1234567890",
-            PublishedDate = new DateOnly(2021, 2, 1),
-            Price = 15.99m,
-            Quantity = 10
-        };
-
-        var pgException = new PostgresException("Duplicate Title/Author", "P0001", "Duplicate Title and Author", "23505");
-        var mockException = new DbUpdateException("Conflict on Title/Author", pgException);
-
-        _mockBookService.Setup(s => s.UpdateBookAsync(book))
-            .ThrowsAsync(mockException);
-
-        // Act
-        var result = await _booksController.PutBook(book.ID, book);
-
-        // Assert
-        var conflictResult = Assert.IsType<ConflictObjectResult>(result);
-        Assert.Equal("Book with conflicting ISBN or Title/Author combination exists", conflictResult?.Value?.ToString());
+        var conflictResult = Assert.IsType<ConflictObjectResult>(result.Result);
+        var details = JsonSerializer.Deserialize<ErrorDetails>(conflictResult?.Value?.ToString() ?? throw new Exception("Result is null"));
+        Assert.Equal("Book with conflicting ISBN or Title/Author combination exists", details?.Message);
     }
 
 }

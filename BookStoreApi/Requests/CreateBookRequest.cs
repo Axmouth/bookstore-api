@@ -1,19 +1,10 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
+using BookStoreApi.Models;
 
-namespace BookStoreApi.Models;
+namespace BookStoreApi.Requests;
 
-[Index(nameof(Id), IsUnique = true)]
-[Index(nameof(Title))]
-[Index(nameof(Author))]
-[Index(nameof(ISBN), IsUnique = true)]
-[Index(nameof(Title), nameof(Author), IsUnique = true)]
-public class Book
+public class CreateBookRequest
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int? Id { get; set; }
 
     [Required]
     public required string Title { get; set; }
@@ -34,5 +25,18 @@ public class Book
     [Required]
     [Range(0, int.MaxValue)]
     public int Quantity { get; set; }
+
+    public Book FromBook()
+    {
+        return new Book
+        {
+            Author = this.Author,
+            ISBN = this.ISBN,
+            Title = this.Title,
+            Price = this.Price,
+            PublishedDate = this.PublishedDate,
+            Quantity = this.Quantity
+        };
+    }
 
 }

@@ -16,9 +16,9 @@ namespace BookStoreApi.Migrations
                 column: "Author");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Books_ID",
+                name: "IX_Books_Id",
                 table: "Books",
-                column: "ID",
+                column: "Id",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -47,7 +47,7 @@ namespace BookStoreApi.Migrations
                 table: "Books");
 
             migrationBuilder.DropIndex(
-                name: "IX_Books_ID",
+                name: "IX_Books_Id",
                 table: "Books");
 
             migrationBuilder.DropIndex(

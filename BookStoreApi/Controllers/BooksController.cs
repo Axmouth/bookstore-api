@@ -1,7 +1,9 @@
 using System.Net;
+using System.Text.Json;
 using BookStoreApi.Data;
 using BookStoreApi.Models;
 using BookStoreApi.Queries;
+using BookStoreApi.Requests;
 using BookStoreApi.Responses;
 using BookStoreApi.Services;
 using Identity.Models;
@@ -50,7 +52,7 @@ public class BooksController : ControllerBase
     // POST /books
     [Authorize(Roles = "Admin")]
     [HttpPost]
-    public async Task<ActionResult<Book>> CreateBook(Book book)
+    public async Task<ActionResult<CreateBookResponse>> CreateBook(Book book)
     {
         if (!ModelState.IsValid)
         {
@@ -59,8 +61,8 @@ public class BooksController : ControllerBase
 
         try
         {
-            await _bookService.CreateBookAsync(book);
-            return CreatedAtAction(nameof(GetBook), new { id = book.ID }, book);
+            var created = await _bookService.CreateBookAsync(book);
+            return CreatedAtAction(nameof(GetBook), new { id = created.Id }, CreateBookResponse.FromBook(book));
         }
         catch (DbUpdateException dbException)
         {
@@ -82,21 +84,20 @@ public class BooksController : ControllerBase
     // PUT /books/:id
     [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutBook(int id, Book book)
+    public async Task<ActionResult<UpdateBookResponse>> UpdateBook(int id, [FromBody] UpdateBookRequest request)
     {
-        if (id != book.ID)
-        {
-            return BadRequest();
-        }
-
         try
         {
+            Book book = request.ToBook();
+            book.Id = id;
             var updated = await _bookService.UpdateBookAsync(book);
 
-            if (!updated)
+            if (updated is null)
             {
                 return NotFound();
             }
+
+            return Ok(UpdateBookResponse.FromBook(updated));
         }
         catch (DbUpdateException dbException)
         {
@@ -113,8 +114,6 @@ public class BooksController : ControllerBase
             }
             throw;
         }
-
-        return NoContent();
     }
 
     // DELETE /books/:id
