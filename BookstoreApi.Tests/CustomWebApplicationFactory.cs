@@ -24,7 +24,6 @@ public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStar
             services.AddDbContext<AppDbContext>(options =>
                 options.UseInMemoryDatabase("InMemoryDbForTesting")
                 .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
-                
 
             // Configure other services
             services.AddControllers()

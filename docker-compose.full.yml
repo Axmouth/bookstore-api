@@ -28,7 +28,7 @@ services:
       AdminSettings__AdminPassword: ${AdminSettings__AdminPassword:-Admin@1231}
       AdminSettings__AdminUsername: ${AdminSettings__AdminUsername:-admin}
     ports:
-      - "5000:8080"
+      - "5111:8080"
     depends_on:
       - db
 
