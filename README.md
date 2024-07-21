@@ -18,7 +18,7 @@ This project is a BookStore API built with ASP.NET Core and PostgreSQL. It provi
   - [API Documentation](#api-documentation)
   - [Design Choices and Trade-offs](#design-choices-and-trade-offs)
     - [Use of ASP.NET Core and PostgreSQL](#use-of-aspnet-core-and-postgresql)
-    - [Manual Mapping vs. Automapper](#manual-mapping-vs-automapper)
+    - [Manual Mapping vs. AutoMapper](#manual-mapping-vs-automapper)
     - [Error Handling Middleware](#error-handling-middleware)
     - [Environment Variable Configuration](#environment-variable-configuration)
     - [Testing Strategy](#testing-strategy)
@@ -132,56 +132,24 @@ API documentation is available via Swagger. When running the project locally or 
 ## Design Choices and Trade-offs
 
 ### Use of ASP.NET Core and PostgreSQL
-ASP.NET Core is a modern, high-performance framework for building web applications and APIs, providing excellent support for dependency injection, middleware, and various other enterprise-grade features. PostgreSQL is chosen for its reliability, robustness, and advanced features as a relational database.
+ASP.NET Core was chosen for its high performance, scalability, and extensive support for modern web development practices. PostgreSQL was selected for its robustness, advanced features, strong support for SQL standards and my personal familiarity.
 
-### Manual Mapping vs. Automapper
-Instead of using a library like AutoMapper, manual mapping methods (`FromBook`, `ToBook`) are used. This decision is based on:
-- **Simplicity**: For a small project, manual mapping is straightforward and easy to understand.
-- **Control**: Manual mapping provides explicit control over how objects are transformed, making the code more transparent.
-- **Performance**: Avoiding the overhead of an additional library can be beneficial for performance-sensitive applications.
+### Manual Mapping vs. AutoMapper
+Manual mapping methods (`FromBook`, `ToBook`) were implemented instead of using AutoMapper, and alternatives, to keep things simple, maintain explicit control over data transformation, and avoid the overhead of an additional library, and the all the added configuration.
 
 ### Error Handling Middleware
-A custom middleware is implemented for centralized error handling. This ensures that all exceptions are caught and handled in a consistent manner, improving maintainability and readability of the code.
+A custom middleware handles errors uniformly across the application, ensuring consistency in error responses and centralizing error handling logic for easier maintenance and debugging.
 
 ### Environment Variable Configuration
-Environment variables are used to manage configuration settings, allowing the application to be easily configured for different environments (development, testing, production). Docker Compose files are set up to use default values, which can be overridden as needed.
+Environment variables manage configuration settings, allowing easy adaptation to different environments (development, testing, production). Docker Compose leverages these variables to provide default values, which can be overridden as needed.
 
 ### Testing Strategy
-The project primarily uses integration tests to ensure that different components work together as expected. Docker Compose is used to create a test environment that mimics production, ensuring that the tests are reliable and consistent.
+Integration tests were prioritized over unit tests to ensure comprehensive testing of how components interact with each other, such as database operations, controllers, middleware, and authentication. Given the nature of the project, there were limited opportunities for isolated unit tests that didn't involve interactions with external systems. Unit tests could be applied to:
+- Business logic functions that are isolated and don't depend on external systems.
+- Utility functions or helper methods.
 
 ### Seeded Admin User
-An admin user is seeded into the database during initialization with the following credentials:
-- **Email**: `admin@bookstore.com`
-- **Username**: `admin`
-- **Password**: `Admin@1231`
-
-Currently, there is no functionality to create users via the API. Future enhancements could include user registration and management features. The user's credentials can be overriden with previous mentioned environment variables.
+An admin user is seeded during database initialization to facilitate immediate use and testing. Currently, there is no functionality to create users via the API, simplifying initial development but limiting user management capabilities. Credentials can be overridden with environment variables.
 
 ### Docker and Docker Compose
-Docker is used to containerize the application, ensuring consistent behavior across different environments. Docker Compose is used to manage multi-container applications, making it easy to set up and run the entire stack (API and database) locally or in a CI/CD pipeline.
-
-Brief Explanation of the Design Choices and Trade-offs
-Use of ASP.NET Core and PostgreSQL
-
-The choice of ASP.NET Core was made for its high performance, scalability, and extensive support for modern web development practices. PostgreSQL was selected as the database due to its robustness, advanced features, and strong support for relational data.
-Manual Mapping vs. AutoMapper
-
-Manual mapping methods (FromBook, ToBook) were implemented instead of using AutoMapper. This decision was based on:
-
-  - Simplicity: Manual mapping is straightforward for a small project, making it easier to understand and maintain.
-  - Control: It provides explicit control over data transformation, ensuring transparency in the codebase.
-  - Performance: Avoids the overhead of an additional library, beneficial for performance-sensitive applications.
-
-A custom middleware was created to handle errors uniformly across the application. This approach ensures consistency in error responses and centralizes error handling logic, making the application easier to maintain and debug.
-Environment Variable Configuration
-
-Using environment variables for configuration allows the application to be easily adapted to different environments (development, testing, production). Docker Compose files leverage these variables to provide default values, which can be overridden as needed, enhancing flexibility and security.
-Integration Testing with Docker
-
-Integration tests were prioritized over unit tests to ensure comprehensive testing of how components interact with each other. Docker Compose is used to replicate the production environment during testing, ensuring that tests are reliable and consistent.
-Seeded Admin User
-
-To facilitate immediate use and testing, an admin user is seeded during database initialization. The current design does not include user registration features, which simplifies initial development but limits user management capabilities.
-Docker and Docker Compose
-
-Docker is utilized to containerize the application, ensuring consistent behavior across different environments. Docker Compose manages multi-container setups, simplifying the process of running the entire stack locally and in CI/CD pipelines. This choice enhances development efficiency and deployment consistency.
+Docker containerizes the application, ensuring consistent behavior across different environments. Docker Compose manages multi-container setups, simplifying the process of running the entire stack locally and in CI/CD pipelines, enhancing development efficiency and deployment consistency.

@@ -135,10 +135,12 @@ else
 
 app.UseRouting();
 
-app.UseMiddleware<ErrorHandlingMiddleware>(); // Ensure middleware is here
+app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseMiddleware<NotFoundMiddleware>();
 
 app.UseEndpoints(endpoints =>
 {

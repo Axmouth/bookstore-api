@@ -1,0 +1,76 @@
+name: Publish Docker image of BookStore API to GHCR and deploy to server
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  push_to_registry_and_deploy_to_server:
+    name: Push Docker image to GitHub Container Registry and deploy to server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+
+      - name: Login to GitHub Container Registry
+        run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Pull the previous version of the Docker image
+        run: docker pull ghcr.io/axmouth/bookstore-api || true
+
+      - name: Build the new version of the image
+        run: docker build . --file Dockerfile --tag ghcr.io/axmouth/bookstore-api --cache-from=ghcr.io/axmouth/bookstore-api
+
+      - name: Tag image
+        run: docker tag ghcr.io/axmouth/bookstore-api ghcr.io/axmouth/bookstore-api:latest
+
+      - name: Push image to GHCR
+        run: docker push ghcr.io/axmouth/bookstore-api:latest
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+      - name: Create empty .env file
+        run: touch .env
+
+      - name: Use docker-compose to remotely stop containers
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: COMPOSE_PARAMIKO_SSH=1 DOCKER_HOST="ssh://$SERVER_USERNAME@$SERVER_IP:$SSH_PORT" docker-compose -f docker-compose.full.yml stop
+
+      - name: Use docker-compose to remotely remove containers
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: COMPOSE_PARAMIKO_SSH=1 DOCKER_HOST="ssh://$SERVER_USERNAME@$SERVER_IP:$SSH_PORT" docker-compose -f docker-compose.full.yml rm -f
+
+      - name: Use docker-compose to remotely pull new containers
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: COMPOSE_PARAMIKO_SSH=1 DOCKER_HOST="ssh://$SERVER_USERNAME@$SERVER_IP:$SSH_PORT" docker-compose -f docker-compose.full.yml pull
+
+      - name: Use docker-compose to deploy remotely
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          ASPNETCORE_ENVIRONMENT: Production
+          PostgreSQL__ConnectionString: ${{ secrets.DATABASE_URL }}
+          JwtSettings__Secret: ${{ secrets.JWT_SECRET }}
+          JwtSettings__Issuer: BookStoreIssuer
+          JwtSettings__Audience: BookStoreAudience
+          JwtSettings__TokenLifetime: 120
+          AdminSettings__AdminEmail: ${{ secrets.ADMIN_EMAIL }}
+          AdminSettings__AdminPassword: ${{ secrets.ADMIN_PASSWORD }}
+          AdminSettings__AdminUsername: ${{ secrets.ADMIN_USERNAME }}
+        run: COMPOSE_PARAMIKO_SSH=1 DOCKER_HOST="ssh://$SERVER_USERNAME@$SERVER_IP:$SSH_PORT" docker-compose -f docker-compose.full.yml up --remove-orphans -d
