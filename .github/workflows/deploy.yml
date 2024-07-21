@@ -43,9 +43,6 @@ jobs:
       - name: Load Docker image on server
         run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'docker load -i /tmp/bookstore/bookstore-api.tar'
 
-      - name: Check Docker Compose version on server
-        run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'docker-compose --version'
-
       - name: Create empty .env file
         run: touch .env
 
@@ -69,7 +66,7 @@ jobs:
           AdminSettings__AdminEmail: ${{ secrets.ADMIN_EMAIL }}
           AdminSettings__AdminPassword: ${{ secrets.ADMIN_PASSWORD }}
           AdminSettings__AdminUsername: ${{ secrets.ADMIN_USERNAME }}
-        run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'COMPOSE_PARAMIKO_SSH=1 docker-compose -f /tmp/bookstore/docker-compose.full.yml up --remove-orphans -d'
+        run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'COMPOSE_PARAMIKO_SSH=1 docker-compose -f /tmp/bookstore/docker-compose.full.yml up --build --force-recreate -d'
 
       - name: Cleanup temporary files on server
         run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'rm -rf /tmp/bookstore/bookstore-api.tar /tmp/bookstore/docker-compose.full.yml /tmp/bookstore/*'

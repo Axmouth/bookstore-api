@@ -2,15 +2,11 @@ version: '3.8'
 
 services:
   bookstoretest:
-    image: bookstoreapi-test:latest
     build:
       context: .
       dockerfile: Dockerfile.test
     environment:
       ASPNETCORE_ENVIRONMENT: Testing
-      Logging__LogLevel__Default: Error
-      Logging__LogLevel__Microsoft: Error
-      Logging__LogLevel__Microsoft.Hosting.Lifetime: Error
       JwtSettings__Secret: Secret123456789000000000000000000000000000
       JwtSettings__Issuer: BookStoreIssuer
       JwtSettings__Audience: BookStoreAudience

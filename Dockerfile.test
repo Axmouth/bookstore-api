@@ -8,11 +8,10 @@ COPY BookStoreApi.Tests/*.csproj ./BookStoreApi.Tests/
 RUN dotnet restore
 
 # Copy everything else and build
-COPY BookStoreApi/. ./BookStoreApi/
-COPY BookStoreApi.Tests/. ./BookStoreApi.Tests/
+COPY ./BookStoreApi/. ./BookStoreApi/
+COPY ./BookStoreApi.Tests/. ./BookStoreApi.Tests/
 WORKDIR /app/BookStoreApi.Tests
 RUN dotnet build
 
 # Run tests
-FROM build AS testrunner
 CMD ["dotnet", "test"]

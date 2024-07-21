@@ -12,6 +12,7 @@ services:
 
   bookstoreweb:
     image: bookstoreapi:latest
+    container_name: bookstore_web
     build:
       context: .
       dockerfile: Dockerfile
