@@ -1,33 +1,25 @@
-name: Publish Docker image of BookStore API to GHCR and deploy to server
+name: Build and deploy Docker image of BookStore API to server
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
-  push_to_registry_and_deploy_to_server:
-    name: Push Docker image to GitHub Container Registry and deploy to server
+  build_and_deploy:
+    name: Build Docker image and deploy to server
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
 
-      - name: Login to GitHub Container Registry
-        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
-
-      - name: Pull the previous version of the Docker image
-        run: docker pull ghcr.io/axmouth/bookstore-api || true
-
       - name: Build the new version of the image
-        run: docker build . --file Dockerfile --tag ghcr.io/axmouth/bookstore-api --cache-from=ghcr.io/axmouth/bookstore-api
+        run: docker build . --file Dockerfile --tag bookstore-api:latest
 
-      - name: Tag image
-        run: docker tag ghcr.io/axmouth/bookstore-api ghcr.io/axmouth/bookstore-api:latest
-
-      - name: Push image to GHCR
-        run: docker push ghcr.io/axmouth/bookstore-api:latest
+      - name: Save the Docker image to a tar file
+        run: docker save bookstore-api:latest -o bookstore-api.tar
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
@@ -35,29 +27,33 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           known_hosts: ${{ secrets.KNOWN_HOSTS }}
 
+      - name: Create deployment directory on server
+        run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'mkdir -p /tmp/bookstore'
+
+      - name: Transfer Docker image to server
+        run: scp -P ${{ secrets.SSH_PORT }} bookstore-api.tar ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }}:/tmp/bookstore/bookstore-api.tar
+
+      - name: Transfer Docker Compose file to server
+        run: scp -P ${{ secrets.SSH_PORT }} docker-compose.full.yml ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }}:/tmp/bookstore/docker-compose.full.yml
+
+      - name: Transfer application files to server
+        run: |
+          scp -P ${{ secrets.SSH_PORT }} -r * ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }}:/tmp/bookstore/
+
+      - name: Load Docker image on server
+        run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'docker load -i /tmp/bookstore/bookstore-api.tar'
+
+      - name: Check Docker Compose version on server
+        run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'docker-compose --version'
+
       - name: Create empty .env file
         run: touch .env
 
-      - name: Use docker-compose to remotely stop containers
-        env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-        run: COMPOSE_PARAMIKO_SSH=1 DOCKER_HOST="ssh://$SERVER_USERNAME@$SERVER_IP:$SSH_PORT" docker-compose -f docker-compose.full.yml stop
+      - name: Use docker-compose to stop containers on server
+        run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'COMPOSE_PARAMIKO_SSH=1 docker-compose -f /tmp/bookstore/docker-compose.full.yml stop'
 
-      - name: Use docker-compose to remotely remove containers
-        env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-        run: COMPOSE_PARAMIKO_SSH=1 DOCKER_HOST="ssh://$SERVER_USERNAME@$SERVER_IP:$SSH_PORT" docker-compose -f docker-compose.full.yml rm -f
-
-      - name: Use docker-compose to remotely pull new containers
-        env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-        run: COMPOSE_PARAMIKO_SSH=1 DOCKER_HOST="ssh://$SERVER_USERNAME@$SERVER_IP:$SSH_PORT" docker-compose -f docker-compose.full.yml pull
+      - name: Use docker-compose to remove containers on server
+        run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'COMPOSE_PARAMIKO_SSH=1 docker-compose -f /tmp/bookstore/docker-compose.full.yml rm -f'
 
       - name: Use docker-compose to deploy remotely
         env:
@@ -73,4 +69,10 @@ jobs:
           AdminSettings__AdminEmail: ${{ secrets.ADMIN_EMAIL }}
           AdminSettings__AdminPassword: ${{ secrets.ADMIN_PASSWORD }}
           AdminSettings__AdminUsername: ${{ secrets.ADMIN_USERNAME }}
-        run: COMPOSE_PARAMIKO_SSH=1 DOCKER_HOST="ssh://$SERVER_USERNAME@$SERVER_IP:$SSH_PORT" docker-compose -f docker-compose.full.yml up --remove-orphans -d
+        run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'COMPOSE_PARAMIKO_SSH=1 docker-compose -f /tmp/bookstore/docker-compose.full.yml up --remove-orphans -d'
+
+      - name: Cleanup temporary files on server
+        run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'rm -rf /tmp/bookstore/bookstore-api.tar /tmp/bookstore/docker-compose.full.yml /tmp/bookstore/*'
+
+      - name: Remove unused Docker images on server
+        run: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} 'docker image prune -f'
