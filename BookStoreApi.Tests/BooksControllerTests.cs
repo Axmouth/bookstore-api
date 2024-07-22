@@ -5,7 +5,11 @@ using BookStoreApi.Queries;
 using BookStoreApi.Requests;
 using BookStoreApi.Responses;
 using BookStoreApi.Services;
+using BookStoreApi.Utilities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Npgsql;
@@ -18,13 +22,27 @@ public class BooksControllerTests
 {
     private readonly ITestOutputHelper _testOutputHelper;
     private readonly Mock<IBookService> _mockBookService;
+
+    private readonly Mock<ICustomUrlHelper> _mockCustomUrlHelper;
     private readonly BooksController _booksController;
+
 
     public BooksControllerTests(ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
         _mockBookService = new Mock<IBookService>();
-        _booksController = new BooksController(_mockBookService.Object);
+        _mockCustomUrlHelper = new Mock<ICustomUrlHelper>();
+
+        // Set up the custom URL helper mock
+        _mockCustomUrlHelper.Setup(x => x.GetScheme()).Returns("https");
+        _mockCustomUrlHelper.Setup(x => x.GeneratePageLink(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns<string, string, int, int>((action, controller, targetPage, pageSize) =>
+            {
+                return $"https://bookstore.api.axmouth.dev/api/v1/books?PageNumber={targetPage}&PageSize={pageSize}";
+            });
+
+        // Create the controller instance with mock services
+        _booksController = new BooksController(_mockBookService.Object, _mockCustomUrlHelper.Object);
     }
 
     [Fact]

@@ -1,6 +1,8 @@
 using BookStoreApi.Models;
-using Microsoft.AspNetCore.Mvc;
 using BookStoreApi.Controllers;
+using BookStoreApi.Utilities;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace BookStoreApi.Responses;
 
@@ -18,9 +20,13 @@ public class GetBooksResponse
 
     public string? PreviousPage { get; set; }
 
-    public static GetBooksResponse FromBooks(Book[] books, int pageNumber, int pageSize, int total, IUrlHelper urlHelper)
+    public static GetBooksResponse FromBooks(Book[] books, int pageNumber, int pageSize, int total, ICustomUrlHelper customUrlHelper)
     {
         var totalPages = (int)Math.Ceiling((double)total / pageSize);
+        string controllerName = nameof(BooksController).Replace("Controller", "");
+
+        var nextPage = pageNumber < totalPages ? customUrlHelper.GeneratePageLink(nameof(BooksController.GetBooks), controllerName, pageNumber + 1, pageSize) : null;
+        var previousPage = pageNumber > 1 ? customUrlHelper.GeneratePageLink(nameof(BooksController.GetBooks), controllerName, pageNumber - 1, pageSize) : null;
 
         return new GetBooksResponse
         {
@@ -28,9 +34,8 @@ public class GetBooksResponse
             PageNumber = pageNumber,
             PageSize = pageSize,
             TotalItems = total,
-            NextPage = pageNumber < totalPages ? urlHelper.Link(default, new { PageNumber = pageNumber + 1, PageSize = pageSize }) : null,
-            PreviousPage = pageNumber > 1 ? urlHelper.Link(default, new { PageNumber = pageNumber - 1, PageSize = pageSize }) : null
+            NextPage = nextPage,
+            PreviousPage = previousPage
         };
     }
 }
-

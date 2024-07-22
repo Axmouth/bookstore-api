@@ -2,6 +2,14 @@
 
 This project is a BookStore API built with ASP.NET Core and PostgreSQL. It provides endpoints to manage books, including features like pagination, search, and authentication.
 
+It is also deployed to a DigitalOcean instance on https://bookstore.api.axmouth.dev/ using GitHub Actions, using default admin login/pass (admin / Admin@1231).
+
+Endpoints:
+
+  - Books https://bookstore.api.axmouth.dev/api/v1/books
+
+  - Login https://bookstore.api.axmouth.dev/api/auth/login
+
 ## Table of Contents
 
 - [BookStore API](#bookstore-api)
@@ -25,6 +33,7 @@ This project is a BookStore API built with ASP.NET Core and PostgreSQL. It provi
     - [Seeded Admin User](#seeded-admin-user)
     - [Docker and Docker Compose](#docker-and-docker-compose)
     - [Request/Response Objects](#requestresponse-objects)
+    - [JWT Authentication](#jwt-authentication)
 
 ## Prerequisites
 
@@ -72,7 +81,7 @@ Before you begin, ensure you have the following installed on your machine:
 
     Or run the docker compose file to automatically set up a database with the default string
     ```bash
-    docker-compose -f docker-compose.db-local.yml up --build
+    docker-compose -f docker-compose.db-local.yml up -d --build
     ```
 
 3. Restore dependencies and run the application:
@@ -148,6 +157,7 @@ Environment variables manage configuration settings, allowing easy adaptation to
 Integration tests were prioritized over unit tests to ensure comprehensive testing of how components interact with each other, such as database operations, controllers, middleware, and authentication. Given the nature of the project, there were limited opportunities for isolated unit tests that didn't involve interactions with external systems. Unit tests could be applied to:
 - Business logic functions that are isolated and don't depend on external systems.
 - Utility functions or helper methods.
+Integration tests use an in-memory database to ensure tests are isolated and do not affect each other.
 
 ### Seeded Admin User
 An admin user is seeded during database initialization to facilitate immediate use and testing. Currently, there is no functionality to create users via the API, simplifying initial development but limiting user management capabilities. Credentials can be overridden with environment variables.
@@ -163,3 +173,7 @@ Using dedicated request and response objects allows for:
 - **Decoupling**: Separate API contracts from domain models, facilitating easier evolution and testing of the API.
 
 This approach improves flexibility, security, and maintainability of the API.
+
+### JWT Authentication
+
+Considering the assignment specified a RESTful API, a stateless JWT Authentication scheme felt as the most apt.

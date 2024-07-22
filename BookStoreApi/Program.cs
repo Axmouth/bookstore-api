@@ -11,6 +11,11 @@ using Identity.Models;
 using BookStoreApi.Services;
 using BookStoreApi.Repositories;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.HttpOverrides;
+using BookStoreApi.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -115,6 +120,16 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
+builder.Services.AddScoped<ICustomUrlHelper, CustomUrlHelper>();
+builder.Services.AddScoped(x =>
+{
+    var actionContext = x.GetRequiredService<IActionContextAccessor>().ActionContext;
+    var factory = x.GetRequiredService<IUrlHelperFactory>();
+    return factory.GetUrlHelper(actionContext!);
+});
+
 
 var app = builder.Build();
 
@@ -139,6 +154,12 @@ app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 
 app.UseMiddleware<NotFoundMiddleware>();
 

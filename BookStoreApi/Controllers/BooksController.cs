@@ -6,6 +6,7 @@ using BookStoreApi.Queries;
 using BookStoreApi.Requests;
 using BookStoreApi.Responses;
 using BookStoreApi.Services;
+using BookStoreApi.Utilities;
 using Identity.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,9 +21,11 @@ namespace BookStoreApi.Controllers;
 public class BooksController : ControllerBase
 {
     private readonly IBookService _bookService;
+    private readonly ICustomUrlHelper _customUrlHelper;
 
-    public BooksController(IBookService bookService)
+    public BooksController(IBookService bookService, ICustomUrlHelper customUrlHelper)
     {
+        _customUrlHelper = customUrlHelper;
         _bookService = bookService;
     }
 
@@ -33,7 +36,7 @@ public class BooksController : ControllerBase
     {
         var pagedResult = await _bookService.GetBooksAsync(query);
 
-        var response = GetBooksResponse.FromBooks(pagedResult.Items.ToArray(), query.PageNumber, query.PageSize, pagedResult.TotalCount, Url);
+        var response = GetBooksResponse.FromBooks(pagedResult.Items.ToArray(), query.PageNumber, query.PageSize, pagedResult.TotalCount, _customUrlHelper);
 
         return Ok(response);
     }

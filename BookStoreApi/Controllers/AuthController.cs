@@ -27,13 +27,13 @@ public class AuthController : ControllerBase
         var user = await _userManager.FindByNameAsync(model.Username);
         if (user == null)
         {
-            return Unauthorized(new ErrorDetails { Message ="Invalid username or password", StatusCode = StatusCodes.Status401Unauthorized});
+            return Unauthorized(new ErrorDetails { Message = "Invalid username or password", StatusCode = StatusCodes.Status401Unauthorized });
         }
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
         if (!result.Succeeded)
         {
-            return Unauthorized(new ErrorDetails { Message ="Invalid username or password", StatusCode = StatusCodes.Status401Unauthorized});
+            return Unauthorized(new ErrorDetails { Message = "Invalid username or password", StatusCode = StatusCodes.Status401Unauthorized });
         }
 
         var token = await _jwtTokenService.GenerateTokenAsync(user, _userManager);
